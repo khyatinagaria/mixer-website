@@ -1,0 +1,206 @@
+// Zero-Proof Lab engine (ESM build of zero-proof-lab/src/engine.js).
+// Deterministic matching + the trained tag/pairing model. No dependencies.
+/* eslint-disable */
+const AXES = ['sweet', 'sour', 'bitter', 'creamy', 'fizzy'];
+const TEMPS = ['iced', 'hot', 'cold', 'blended'];
+
+// ---------- shared featurizer (used by train.js and at inference) ----------
+function featurize(drinkLike, ingIndex) {
+  // drinkLike: { ingredients:[{id, ml_equiv}], flavor_vector, temp, carbonated, diet:{caffeine_free, dairy_free, sugar_g_est} }
+  const nI = ingIndex.list.length;
+  const x = new Array(nI + 5 + TEMPS.length + 4).fill(0);
+  const total = drinkLike.ingredients.reduce((s, i) => s + i.ml_equiv, 0) || 1;
+  for (const i of drinkLike.ingredients) {
+    const k = ingIndex.pos[i.id];
+    if (k != null) x[k] = 0.6 + 0.4 * Math.sqrt(i.ml_equiv / total); // presence + gentle volume share
+  }
+  drinkLike.flavor_vector.forEach((v, k) => { x[nI + k] = v * 2; });
+  const t = TEMPS.indexOf(drinkLike.temp); if (t >= 0) x[nI + 5 + t] = 1;
+  const o = nI + 5 + TEMPS.length;
+  x[o] = drinkLike.carbonated ? 1 : 0;
+  x[o + 1] = drinkLike.diet.caffeine_free ? 0 : 1;
+  x[o + 2] = drinkLike.diet.dairy_free ? 0 : 1;
+  x[o + 3] = Math.min(drinkLike.diet.sugar_g_est / 40, 1.5);
+  return x;
+}
+const sigmoid = z => 1 / (1 + Math.exp(-z));
+const dot = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * b[i]; return s; };
+const cosine = (a, b) => { const d = dot(a, b), n = Math.sqrt(dot(a, a) * dot(b, b)); return n ? d / n : 0; };
+
+function createEngine({ ingredients, drinks, model }) {
+  const ingById = Object.fromEntries(ingredients.map(i => [i.id, i]));
+  const ingIndex = { list: ingredients.map(i => i.id), pos: Object.fromEntries(ingredients.map((i, k) => [i.id, k])) };
+
+  // ---------- trained tag model ----------
+  function predictTags(drinkLike) {
+    if (!model) return null;
+    const x = featurize(drinkLike, ingIndex);
+    const out = {};
+    for (const [group, heads] of Object.entries(model.heads)) {
+      out[group] = Object.entries(heads).map(([tag, h]) => ({ tag, p: sigmoid(dot(h.w, x) + h.b) }))
+        .sort((a, b) => b.p - a.p);
+    }
+    return out;
+  }
+
+  // ---------- pantry matching with substitutions ----------
+  const ALWAYS = new Set(['water']); // tap water + ice are assumed in every kitchen
+  function resolve(id, pantry) {
+    if (pantry.has(id) || ALWAYS.has(id)) return { id, via: null };
+    for (const s of ingById[id].substitutes || []) if (pantry.has(s.id)) return { id, via: s.id, note: s.note };
+    return null;
+  }
+  function matchDrink(d, pantry) {
+    const missing = [], subs = [];
+    for (const id of d.core_ingredients) {
+      const r = resolve(id, pantry);
+      if (!r) missing.push(id); else if (r.via) subs.push({ needs: id, use: r.via, note: r.note });
+    }
+    const optionalMissing = d.ingredients.map(i => i.id).filter(id => !d.core_ingredients.includes(id) && !pantry.has(id));
+    const coverage = 1 - (missing.length + 0.5 * subs.length * 0.2) / d.core_ingredients.length;
+    return { missing, subs, optionalMissing, coverage };
+  }
+
+  // ---------- context scoring: hand tags + model probabilities ----------
+  function contextScore(d, ctx) {
+    let s = 0, n = 0;
+    const pred = model && model.drink_tag_probs ? model.drink_tag_probs[d.id] : null;
+    for (const [group, want] of [['season', ctx.season], ['mood', ctx.mood], ['vibe', ctx.vibe]]) {
+      if (!want) continue; n++;
+      const tagged = d[group].includes(want) ? 1 : 0;
+      const p = pred && pred[group] ? (pred[group][want] || 0) : tagged;
+      s += 0.65 * tagged + 0.35 * p; // curated tag wins, model smooths (lets untagged-but-similar drinks surface)
+    }
+    return n ? s / n : 0.5;
+  }
+  function passesDiet(d, diet = []) {
+    return diet.every(f => ({ low_sugar: d.diet.low_sugar, caffeine_free: d.diet.caffeine_free, dairy_free: d.diet.dairy_free,
+      vegan: d.diet.vegan, nut_free: d.diet.nut_free, no_spice: !d.diet.spicy }[f] ?? true));
+  }
+
+  /**
+   * recommend({ pantry:[ids], season, mood, vibe, diet:[flags], flavor:[5 prefs 0..1], temp, limit })
+   * returns { makeNow:[], oneAway:[], forYou:[] }
+   */
+  function recommend(opts = {}) {
+    const pantry = new Set(opts.pantry || []);
+    const limit = opts.limit || 12;
+    const rows = drinks.filter(d => passesDiet(d, opts.diet) && (!opts.temp || d.temp === opts.temp || (opts.temp === 'cold' && d.temp !== 'hot')))
+      .map(d => {
+        const m = matchDrink(d, pantry);
+        const ctx = contextScore(d, opts);
+        const flav = opts.flavor ? cosine(opts.flavor, d.flavor_vector) : 0.5;
+        const pantryWeight = pantry.size ? 0.5 : 0;
+        const score = pantryWeight * m.coverage + (1 - pantryWeight) * 0.65 * ctx + 0.25 * ctx + 0.15 * flav;
+        return { drink: d, ...m, ctx: +ctx.toFixed(3), flavorFit: +flav.toFixed(3), score: +score.toFixed(4) };
+      })
+      .sort((a, b) => b.score - a.score);
+    return {
+      makeNow: rows.filter(r => r.missing.length === 0).slice(0, limit),
+      oneAway: rows.filter(r => r.missing.length === 1).slice(0, limit),
+      forYou: rows.slice(0, limit),
+    };
+  }
+
+  // ---------- auto-suggest: which ingredient to add next ----------
+  function suggestNext(pantryIds, opts = {}) {
+    const pantry = new Set(pantryIds);
+    const gain = {};
+    for (const d of drinks) {
+      if (!passesDiet(d, opts.diet)) continue;
+      const m = matchDrink(d, pantry);
+      if (m.missing.length === 1) {
+        const id = m.missing[0];
+        (gain[id] ||= { id, unlocks: [], score: 0 });
+        gain[id].unlocks.push(d.name);
+        gain[id].score += 1 + contextScore(d, opts);
+      }
+    }
+    // add pairing affinity from the trained PMI table so the next chip "goes with" what's already picked
+    if (model && model.pmi) for (const g of Object.values(gain)) {
+      let aff = 0; for (const p of pantry) aff += (model.pmi[p] && model.pmi[p][g.id]) || 0;
+      g.affinity = +(aff / Math.max(pantry.size, 1)).toFixed(3);
+      g.score += 0.5 * g.affinity;
+    }
+    return Object.values(gain).sort((a, b) => b.score - a.score).slice(0, opts.limit || 6)
+      .map(g => ({ ...g, name: ingById[g.id].name }));
+  }
+  function pairsWith(id, k = 6) {
+    if (!model || !model.pmi[id]) return [];
+    return Object.entries(model.pmi[id]).sort((a, b) => b[1] - a[1]).slice(0, k).map(([j, v]) => ({ id: j, name: ingById[j].name, pmi: v }));
+  }
+
+  // ---------- chemistry checks ----------
+  function chemistry(ids) {
+    const set = new Set(ids), warn = [];
+    const acids = ids.filter(i => ingById[i].flags.includes('acid'));
+    const dairy = ids.filter(i => ['milk', 'cream', 'evaporated_milk', 'ice_cream'].includes(i));
+    if (acids.length && dairy.length) warn.push({ code: 'curdle', msg: `${ingById[acids[0]].name} will curdle ${ingById[dairy[0]].name}.`, fix: 'Swap to oat or coconut milk, or switch to yogurt (lassi-style), or drop the acid.' });
+    const fizz = ids.filter(i => ingById[i].flags.includes('carbonated'));
+    if (fizz.length && ids.some(i => ['banana', 'avocado', 'ice_cream', 'yogurt'].includes(i))) warn.push({ code: 'fizz_foam', msg: 'Fizz with thick blended bases foams over and goes flat.', fix: 'Blend first, then float the fizz on top at the end.' });
+    if (fizz.length > 1) warn.push({ code: 'double_fizz', msg: 'Two sodas compete; the sweeter one wins.', fix: 'Pick one fizz.' });
+    if (set.has('tonic') && ids.some(i => ['milk', 'oat_milk', 'cream'].includes(i))) warn.push({ code: 'tonic_milk', msg: 'Tonic bitterness tastes metallic with milk.', fix: 'Use soda water or drop the milk.' });
+    if (set.has('pineapple_juice') && set.has('yogurt')) warn.push({ code: 'bromelain', msg: 'Fresh pineapple enzymes turn yogurt bitter if it sits.', fix: 'Serve immediately or use canned juice.' });
+    return warn;
+  }
+
+  // ---------- custom lab: balance a new drink from whatever is picked ----------
+  const NAME_A = { sweet: ['Honeyed', 'Velvet', 'Candied'], sour: ['Zesty', 'Electric', 'Tart'], bitter: ['Midnight', 'Smoky', 'Dark'], creamy: ['Silk', 'Cloud', 'Dreamy'], fizzy: ['Sparkling', 'Fizzy', 'Bubbling'] };
+  const NAME_B = { sweet: 'Sipper', sour: 'Smash', bitter: 'Tonic', creamy: 'Cream', fizzy: 'Spritz', hot: 'Toddy', blended: 'Frost' };
+  const usage = {}; drinks.forEach(d => d.ingredients.forEach(i => { usage[i.id] = (usage[i.id] || 0) + 1; }));
+  const heroWord = id => ingById[id].name.replace(/\(.*?\)/g, '').split(/[\s/]+/).filter(w => !/^(cold|fresh|plain|whole|sweetened|heavy|mixed|culinary|roasted|ripe)$/i.test(w))[0];
+  function customLab(ids, opts = {}) {
+    const by = c => ids.filter(i => ingById[i].category === c);
+    const base = by('base'), fizz = by('fizz'), acid = by('acid'), sweet = by('sweetener'), acc = by('accent');
+    // 2 : 1 : 1  (volume : sour : sweet) scaled to a 240 ml glass; fizz takes part of the volume share.
+    const unit = 30, recipe = [];
+    const vol = [...base, ...fizz];
+    const volShare = vol.length ? (unit * 4) / vol.length : 0;
+    base.forEach(id => recipe.push({ id, ml: Math.round(volShare * (fizz.length ? 0.6 : 1)) }));
+    fizz.forEach(id => recipe.push({ id, ml: Math.round(volShare * (base.length ? 1.4 : 1)), last: true }));
+    acid.forEach(id => recipe.push({ id, ml: Math.round(unit / acid.length) }));
+    sweet.forEach(id => recipe.push({ id, ml: Math.round((acid.length ? unit : unit * 0.6) / sweet.length) }));
+    acc.forEach(id => recipe.push({ id, ml: ingById[id].piece_ml || 1, unit: 'pcs', amount: 1 }));
+    if (!vol.length) recipe.push({ id: 'water', ml: 120 }), ids = [...ids, 'water'];
+
+    const ingredientsLike = recipe.map(r => ({ id: r.id, ml_equiv: r.ml }));
+    const fv = [0, 0, 0, 0, 0]; let w = 0;
+    for (const r of ingredientsLike) { const ing = ingById[r.id]; const k = r.ml_equiv * (ing.category === 'accent' ? 6 : 1); ing.flavor_vector.forEach((v, j) => fv[j] += v * k); w += k; }
+    const flavor = fv.map(v => +(v / w).toFixed(3));
+    const carbonated = fizz.length > 0;
+    if (carbonated) flavor[4] = Math.max(flavor[4], 0.45);
+    const flags = new Set(recipe.flatMap(r => ingById[r.id].flags));
+    const sugar = recipe.reduce((s, r) => s + ingById[r.id].sugar_g_per_100ml * r.ml / 100, 0);
+    const temp = opts.temp || (acc.some(a => ['banana', 'avocado', 'ice_cream'].includes(a)) ? 'blended' : 'iced');
+    const drinkLike = { ingredients: ingredientsLike, flavor_vector: flavor, temp, carbonated,
+      diet: { caffeine_free: !flags.has('caffeine'), dairy_free: !flags.has('dairy'), sugar_g_est: sugar } };
+
+    // nearest known drinks by flavor (for "tastes like")
+    const similar = drinks.map(d => ({ name: d.name, id: d.id, sim: cosine(flavor, d.flavor_vector) }))
+      .sort((a, b) => b.sim - a.sim).slice(0, 3);
+    
+    const ranked = AXES.map((a, i) => [a, flavor[i]]).sort((a, b) => b[1] - a[1]);
+    const heroId = [...ids].filter(i => i !== 'water').sort((a, b) => (usage[a] || 0) - (usage[b] || 0))[0]; // rarest = most distinctive
+    const hero = heroId ? heroWord(heroId) : 'House';
+    const seed = ids.join('').length;
+    const suffix = temp === 'hot' ? NAME_B.hot : temp === 'blended' ? NAME_B.blended : NAME_B[ranked[0][0] === 'fizzy' ? 'fizzy' : ranked[0][0]];
+    const name = `${NAME_A[ranked[1][0]][seed % 3]} ${hero} ${suffix}`;
+
+    // build order: muddle accents -> sweet+acid -> bases -> ice -> fizz last (protect the bubbles)
+    const steps = [];
+    const herbs = acc.filter(a => ingById[a].piece_ml <= 1 || ['cucumber', 'ginger', 'chili', 'strawberry', 'berries', 'watermelon', 'lime', 'lemon', 'orange'].includes(a));
+    if (herbs.length) steps.push(`Gently muddle ${herbs.map(a => ingById[a].name.toLowerCase()).join(', ')} in the glass.`);
+    if (sweet.includes('honey')) steps.push('Loosen the honey with a splash of warm water so it does not seize on ice.');
+    if (acid.length || sweet.length) steps.push(`Stir in ${[...acid, ...sweet].map(a => ingById[a].name.toLowerCase()).join(' and ')}.`);
+    if (base.length) steps.push(temp === 'blended' ? 'Blend everything except the fizz with a cup of ice.' : `Add ${base.map(a => ingById[a].name.toLowerCase()).join(', ')} and fill with ice.`);
+    if (fizz.length) steps.push(`Top with ${ingById[fizz[0]].name.toLowerCase()} last and stir once, gently.`);
+
+    return { name, recipe, flavor_vector: flavor, temp, sugar_g_est: +sugar.toFixed(1), warnings: chemistry(ids), steps,
+      tastes_like: similar, predicted_tags: predictTags(drinkLike) };
+  }
+
+  return { recommend, suggestNext, pairsWith, customLab, chemistry, predictTags, matchDrink, featurize: d => featurize(d, ingIndex) };
+}
+
+
+export { createEngine, featurize, cosine, AXES };
