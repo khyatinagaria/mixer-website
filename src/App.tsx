@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { loadLab, type Lab, type Drink } from './lib/data';
-import { blendColor, indianSeason, isIndian, label, layersFrom, subNotesFor } from './lib/helpers';
+import { blendColor, indianSeason, isIndian, label, layersFrom, liveBuild, subNotesFor } from './lib/helpers';
+import { buildSequence } from './lib/sequencer.js';
 import Pantry from './components/Pantry';
 import Filters, { type FilterState } from './components/Filters';
 import Results, { type Row } from './components/Results';
@@ -17,7 +18,7 @@ function drinkView(d: Drink, lab: Lab, pantry: Set<string>): View {
   if (d.diet.caffeine_free) badges.push('Caffeine-free'); if (d.diet.low_sugar) badges.push('Low sugar'); if (d.diet.spicy) badges.push('Spicy');
   return {
     key: d.id, kicker: d.section_label, name: d.name, glass: d.glass, build: d.build, temp: d.temp, carbonated: d.carbonated, garnish: d.garnish,
-    ings: d.ingredients, layers: d.layers, color_hex: d.color_hex, steps: d.steps, flavor: d.flavor_vector, sugar: d.diet.sugar_g_est, badges,
+    ings: d.ingredients, layers: d.layers, color_hex: d.color_hex, steps: d.steps, flavor: d.flavor_vector, sugar: d.diet.sugar_g_est, extras: d.extras || [], badges,
     tags: [...d.season.slice(0, 2), ...d.vibe.slice(0, 3)],
     warnings: d.warnings.includes('acid_dairy') ? [{ msg: 'Acid and milk can curdle.', fix: 'Add the acid last and stir gently, or use oat milk.' }] : [],
     subs: subNotesFor(d, pantry, lab.ingById),
@@ -31,9 +32,9 @@ function customView(lab: Lab, ids: string[]): View | null {
   const top = (g: string, n: number) => (r.predicted_tags?.[g] || []).slice(0, n).map((t: any) => t.tag);
   const fizz = ids.some(i => lab.ingById[i].category === 'fizz');
   return {
-    key: 'custom-' + ids.join('+'), custom: true, kicker: 'Custom Lab · invented for you', name: r.name, glass: r.temp === 'blended' ? 'tall' : 'highball', build: fizz ? 'built' : r.temp === 'blended' ? 'blended' : 'stirred',
+    key: 'custom-' + ids.join('+'), custom: true, kicker: 'Custom Lab · invented for you', name: r.name, glass: r.temp === 'blended' ? 'tall' : 'highball', build: r.temp === 'blended' ? 'blended' : liveBuild(ids, lab.ingById),
     temp: r.temp, carbonated: fizz, garnish: '', ings, layers, color_hex: blendColor(layers), steps: r.steps.length ? r.steps : ['Stir everything over ice.'],
-    flavor: r.flavor_vector, sugar: r.sugar_g_est, badges: ['Invented here'], tags: [...top('season', 1), ...top('mood', 2), ...top('vibe', 1)],
+    flavor: r.flavor_vector, sugar: r.sugar_g_est, extras: [], badges: ['Invented here'], tags: [...top('season', 1), ...top('mood', 2), ...top('vibe', 1)],
     warnings: r.warnings.map((w: any) => ({ msg: w.msg, fix: w.fix })), subs: [], tastesLike: r.tastes_like.map((t: any) => t.name),
   };
 }
@@ -45,10 +46,11 @@ export default function App() {
   const [f, setF] = useState<FilterState>(() => read('zpl-filters', { season: indianSeason(), mood: null, vibe: null, diet: [], indianFirst: true }));
   const [units, setUnits] = useState<'ml' | 'spoons'>(() => read('zpl-units', 'ml'));
   const [night, setNight] = useState<boolean>(() => read('zpl-night', false));
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(() => { try { return new URLSearchParams(location.hash.slice(1)).get('drink'); } catch { return null; } });
   const [custom, setCustom] = useState<View | null>(null);
 
   useEffect(() => { loadLab().then(setLab).catch(e => setErr(String(e))); }, []);
+  useEffect(() => { try { history.replaceState(null, '', openId ? '#drink=' + openId : location.pathname + location.search); } catch { /* ignore */ } }, [openId]);
   useEffect(() => { write('zpl-pantry', pantry); }, [pantry]);
   useEffect(() => { write('zpl-filters', f); }, [f]);
   useEffect(() => { write('zpl-units', units); }, [units]);
@@ -67,8 +69,12 @@ export default function App() {
     const ids = pantry;
     const r = ids.length ? lab.engine.customLab(ids) : null;
     const layers = r ? layersFrom(r.recipe.map((x: any) => ({ id: x.id, ml: x.ml })), lab.ingById) : [];
+    const seq = r ? buildSequence({
+      items: r.recipe.map((x: any) => ({ id: x.id, ml: x.ml, unit: x.unit })), temp: r.temp, build: r.temp === 'blended' ? 'blended' : liveBuild(ids, lab.ingById),
+      carbonated: ids.some(i => lab.ingById[i].category === 'fizz'), garnish: '', stepsText: (r.steps || []).join(' '), ingById: lab.ingById, learned: lab.order,
+    }) : null;
     return {
-      ids, layers, flavor: r ? r.flavor_vector : [0, 0, 0, 0, 0], temp: r ? r.temp : 'iced',
+      ids, layers, seq, flavor: r ? r.flavor_vector : [0, 0, 0, 0, 0], temp: r ? r.temp : 'iced',
       carbonated: ids.some(i => lab.ingById[i].category === 'fizz'),
       warnings: ids.length ? lab.engine.chemistry(ids) : [],
       next: ids.length ? lab.engine.suggestNext(ids, { season: f.season, mood: f.mood, vibe: f.vibe, diet: f.diet, limit: 5 }) : [],
@@ -81,7 +87,7 @@ export default function App() {
   if (!lab || !rec || !live) return <main className="center"><div className="loader" aria-label="Loading" /><p>Mixing the data…</p></main>;
 
   const toggle = (id: string) => { setPantry(p => (p.includes(id) ? p.filter(x => x !== id) : [...p, id])); setCustom(null); };
-  const view: View | null = custom || (openId ? drinkView(lab.drinkById[openId], lab, new Set(pantry)) : null);
+  const view: View | null = custom || (openId && lab.drinkById[openId] ? drinkView(lab.drinkById[openId], lab, new Set(pantry)) : null);
   const swap = (code: string) => {
     if (code === 'curdle') setPantry(p => [...new Set(p.map(x => (DAIRY.includes(x) ? 'oat_milk' : x)))]);
   };

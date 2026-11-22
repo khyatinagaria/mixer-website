@@ -97,3 +97,14 @@ export function subNotesFor(d: Drink, pantry: Set<string>, ingById: Record<strin
   }
   return out;
 }
+
+/** Picks a build method for a freshly picked set of ingredients so the generated pour shows distinct layers when it should. */
+export function liveBuild(ids: string[], ingById: Record<string, Ingredient>): 'layered' | 'built' | 'blended' {
+  const has = (...x: string[]) => ids.some(i => x.includes(i));
+  const creamy = has('milk', 'oat_milk', 'almond_milk', 'soy_milk', 'coconut_milk', 'cream', 'evaporated_milk', 'condensed_milk');
+  const coffee = has('espresso', 'cold_brew');
+  const heavy = ids.some(i => ingById[i] && ingById[i].category === 'sweetener' && ingById[i].density >= 9 && ingById[i].opacity >= 0.5);
+  const clearBase = ids.some(i => ingById[i] && ingById[i].category === 'base' && ingById[i].opacity < 0.9 && !['milk', 'oat_milk', 'almond_milk', 'soy_milk', 'coconut_milk', 'cream'].includes(i));
+  if ((coffee && creamy) || (has('matcha') && creamy) || (heavy && clearBase) || (has('hibiscus_tea', 'black_tea', 'green_tea') && coffee)) return 'layered';
+  return 'built';
+}

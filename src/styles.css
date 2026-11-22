@@ -60,7 +60,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 .stage { background: var(--card); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow); overflow: hidden; }
 .glass-wrap { position: relative; background: radial-gradient(ellipse at 50% 30%, var(--bg2), var(--bg) 70%); padding: 14px 0 0; display: grid; place-items: center; }
-.glass { width: min(220px, 62vw); height: auto; overflow: visible; }
 .stage-body { padding: 16px 18px 20px; display: flex; flex-direction: column; gap: 10px; }
 .stage h2 { font: 800 1.35rem var(--serif); }
 .drink-name { font: 800 1.9rem/1.05 var(--serif) !important; text-transform: uppercase; }
@@ -109,32 +108,32 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .card-missing { border: 0; border-top: 1px dashed var(--line); background: var(--bg2); padding: 8px 12px; text-align: left; font-weight: 700; font-size: 0.82rem; color: var(--accent); }
 .foot { margin-top: 30px; text-align: center; color: var(--quiet); font-size: 0.8rem; }
 
-/* ---- glass animation ---- */
-.glass-shadow { fill: rgba(0, 0, 0, 0.18); }
-.glass-inner { fill: var(--glass-bg); opacity: 0.55; }
-.glass-outline { fill: none; stroke: var(--ink); stroke-opacity: 0.7; stroke-width: 3.5; stroke-linejoin: round; stroke-linecap: round; }
-.glass-hint { font: 700 13px var(--sans); fill: var(--quiet); }
-.layer { transform-box: fill-box; transform-origin: bottom; animation: pour 0.7s cubic-bezier(0.3, 0.9, 0.4, 1) both; transition: y 0.4s, height 0.4s; }
-@keyframes pour { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-.mixed { transition: opacity 1.4s ease; } .edge { animation: fadeIn 0.8s both; } .froth { animation: fadeIn 0.8s both; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.stream { fill: currentColor; animation: stream linear both; }
-@keyframes stream { 0% { opacity: 0.85; } 92% { opacity: 0.85; } 100% { opacity: 0; } }
-.ice { fill: #e6f6ff; fill-opacity: 0.55; stroke: #fff; stroke-opacity: 0.8; stroke-width: 2; animation: dropIn 0.55s cubic-bezier(0.25, 1.2, 0.5, 1) both; }
-@keyframes dropIn { 0% { transform: translateY(-160px); opacity: 0; } 70% { opacity: 1; } 100% { transform: translateY(0); opacity: 1; } }
-.bubble { fill: #fff; fill-opacity: 0.75; animation: rise 3s ease-in infinite; }
-@keyframes rise { from { transform: translateY(0); opacity: 0.9; } to { transform: translateY(calc(-1 * var(--rise, 160px))); opacity: 0; } }
-.bead { fill: #fff; fill-opacity: 0.6; animation: fadeIn 1.2s both; }
-.steam { fill: none; stroke: var(--quiet); stroke-width: 3; stroke-linecap: round; opacity: 0; animation: steam 2.6s ease-in-out infinite; }
-@keyframes steam { 0% { opacity: 0; transform: translateY(8px); } 40% { opacity: 0.6; } 100% { opacity: 0; transform: translateY(-14px); } }
-.garnish { animation: snap 0.5s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
-@keyframes snap { from { transform: scale(0) rotate(-40deg); } to { transform: scale(1) rotate(0); } }
-
-@media (prefers-reduced-motion: reduce) { .layer, .ice, .bubble, .steam, .garnish, .stream, .bead, .froth, .edge { animation-duration: 0.01s !important; animation-iteration-count: 1 !important; animation-delay: 0s !important; } .mixed { transition: none; } }
+/* ---- pour player ---- */
+.pour { width: 100%; display: flex; flex-direction: column; align-items: center; }
+.glass-canvas { width: min(300px, 64vw); height: auto; aspect-ratio: 300 / 430; display: block; }
+.pour.live .glass-canvas { width: min(250px, 70vw); }
+.pour-ui { width: 100%; padding: 0 14px 12px; display: flex; flex-direction: column; gap: 8px; }
+.pour-caption { font: 700 0.95rem/1.25 var(--serif); text-align: center; min-height: 2.4em; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 8px; }
+.pour-n { font: 800 0.72rem var(--sans); background: var(--ink); color: var(--bg); border-radius: 99px; padding: 2px 9px; letter-spacing: 0.04em; flex: none; }
+.pour-bar { display: flex; align-items: center; gap: 10px; }
+.pour-btn { width: 40px; height: 40px; flex: none; border-radius: 50%; border: 0; background: var(--accent); color: var(--on-accent); font-weight: 800; font-size: 0.95rem; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25); }
+.pour-btn:active { transform: translateY(2px); box-shadow: none; }
+.pour-scrub { position: relative; flex: 1; height: 28px; display: grid; align-items: center; }
+.pour-scrub input { width: 100%; margin: 0; accent-color: var(--accent); position: relative; z-index: 2; background: transparent; }
+.pour-ticks { position: absolute; left: 8px; right: 8px; top: 50%; height: 0; pointer-events: none; z-index: 1; }
+.pour-ticks i { position: absolute; top: -9px; width: 2px; height: 18px; background: var(--line); border-radius: 2px; }
+.pour-ticks i.on { background: var(--accent); }
+.seg.tiny button { padding: 4px 9px; font-size: 0.74rem; }
+.steps.gen { list-style: none; counter-reset: s; padding-left: 0; }
+.steps.gen li { counter-increment: s; display: flex; gap: 10px; align-items: baseline; padding: 5px 0; border-bottom: 1px dashed var(--line); }
+.steps.gen li::before { content: counter(s); flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font: 800 0.75rem/22px var(--sans); text-align: center; }
+.extra b { color: var(--accent); }
+h3 small.muted { text-transform: none; letter-spacing: 0; font-weight: 400; margin-left: 6px; }
+@media (prefers-reduced-motion: reduce) { .loader { animation-duration: 3s; } }
 
 @media (max-width: 899px) {
   .col-stage { position: sticky; top: 0; z-index: 5; margin: 0 -16px; }
-  .stage:not(.guide) { border-radius: 0 0 22px 22px; max-height: 46vh; overflow: auto; } .stage:not(.guide) .glass { width: 110px; }
+  .stage:not(.guide) { border-radius: 0 0 22px 22px; max-height: 46vh; overflow: auto; } .stage:not(.guide) .glass-canvas { width: 130px; } .stage:not(.guide) .pour-caption { min-height: 0; font-size: 0.82rem; }
   .stage:not(.guide) .stage-body > p.muted, .stage:not(.guide) .radar-row .muted:not(.tiny), .stage:not(.guide) .radar-row h3 { display: none; }
   .stage:not(.guide) .stage-body { padding: 8px 16px 14px; gap: 6px; }
   .stage:not(.guide) .glass-wrap { padding-top: 6px; } .stage.guide { max-height: none; }

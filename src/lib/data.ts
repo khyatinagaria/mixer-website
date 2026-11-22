@@ -14,21 +14,22 @@ export type Drink = {
   layers: { id: string; ml: number; color_hex: string; opacity: number; density: number }[];
   volume_ml: number; carbonated: boolean; warnings: string[]; source: string;
   diet: { dairy_free: boolean; caffeine_free: boolean; vegan: boolean; nut_free: boolean; low_sugar: boolean; spicy: boolean; sugar_g_est: number };
+  hand: boolean; sub: string; extras: string[];
 };
 export type Taxonomy = { flavor_axes: string[]; sections: Record<string, string>; seasons: string[]; moods: string[]; vibes: string[] };
 
 export type Lab = {
-  engine: any; ingredients: Ingredient[]; ingById: Record<string, Ingredient>; drinks: Drink[]; drinkById: Record<string, Drink>; tax: Taxonomy;
+  engine: any; order: any; ingredients: Ingredient[]; ingById: Record<string, Ingredient>; drinks: Drink[]; drinkById: Record<string, Drink>; tax: Taxonomy;
 };
 
 export async function loadLab(): Promise<Lab> {
   const base = import.meta.env.BASE_URL + 'data/';
-  const [ingredients, drinks, tax, model] = await Promise.all(
-    ['ingredients', 'drinks', 'taxonomy', 'model'].map(f => fetch(base + f + '.json').then(r => r.json())),
+  const [ingredients, drinks, tax, model, order] = await Promise.all(
+    ['ingredients', 'drinks', 'taxonomy', 'model', 'order'].map(f => fetch(base + f + '.json').then(r => r.json())),
   );
   const engine = createEngine({ ingredients, drinks, model });
   return {
-    engine, ingredients, drinks, tax,
+    engine, order, ingredients, drinks, tax,
     ingById: Object.fromEntries(ingredients.map((i: Ingredient) => [i.id, i])),
     drinkById: Object.fromEntries(drinks.map((d: Drink) => [d.id, d])),
   };

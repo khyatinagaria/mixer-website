@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import Glass from './Glass';
+import PourGlass from './PourGlass';
+import { buildSequence } from '../lib/sequencer.js';
 import Radar from './Radar';
 import type { Lab } from '../lib/data';
 import { formatAmount, label, layersFrom } from '../lib/helpers';
@@ -8,20 +9,24 @@ import { downloadCard } from '../lib/share';
 export type View = {
   key: string; custom?: boolean; kicker: string; name: string; glass: string; build: string; temp: string; carbonated: boolean; garnish: string;
   ings: { id: string; amount: number; unit: string; ml_equiv: number }[]; layers: any[]; color_hex: string; steps: string[]; flavor: number[];
-  sugar: number; badges: string[]; tags: string[]; warnings: { msg: string; fix?: string }[]; subs: { needs: string; use: string; note: string }[]; tastesLike?: string[];
+  sugar: number; extras: string[]; badges: string[]; tags: string[]; warnings: { msg: string; fix?: string }[]; subs: { needs: string; use: string; note: string }[]; tastesLike?: string[];
 };
 
-type LiveProps = { layers: any[]; ids: string[]; flavor: number[]; warnings: { code: string; msg: string; fix: string }[]; next: { id: string; name: string; unlocks: string[] }[]; swap: (code: string) => void; add: (id: string) => void; invent: () => void; temp: string; carbonated: boolean };
+type LiveProps = { seq: any; layers: any[]; ids: string[]; flavor: number[]; warnings: { code: string; msg: string; fix: string }[]; next: { id: string; name: string; unlocks: string[] }[]; swap: (code: string) => void; add: (id: string) => void; invent: () => void; temp: string; carbonated: boolean };
 type Props = { lab: Lab; view: View | null; live: LiveProps; units: 'ml' | 'spoons'; setUnits: (u: 'ml' | 'spoons') => void; close: () => void; night: boolean };
 
 export default function Stage({ lab, view, live, units, setUnits, close, night }: Props) {
-  const [tick, setTick] = useState(0);
+  const [tick] = useState(0);
+  const seq = useMemo(() => view ? buildSequence({
+    items: view.ings.map(i => ({ id: i.id, ml: i.ml_equiv, unit: i.unit, amount: i.amount })), temp: view.temp, build: view.build, carbonated: view.carbonated,
+    garnish: view.garnish, stepsText: view.steps.join(' '), ingById: lab.ingById, learned: lab.order,
+  }) : null, [view, lab]);
   const liveKey = 'live-' + live.ids.join('+') + '-' + live.layers.length;
   const nm = (id: string) => lab.ingById[id].name.replace(/ \(.*\)/, '');
 
   if (!view) return (
     <section className="stage" aria-label="Live glass">
-      <div className="glass-wrap"><Glass layers={live.layers} replayKey={liveKey} glass="highball" temp={live.temp} carbonated={live.carbonated} build="stirred" ingredientIds={live.ids} empty={!live.layers.length} /></div>
+      <div className="glass-wrap"><PourGlass live seq={live.seq} replayKey={liveKey} glass="highball" temp={live.temp} carbonated={live.carbonated} ingredientIds={live.ids} empty={!live.ids.length} /></div>
       <div className="stage-body">
         <h2>{live.ids.length ? 'Your glass, live' : 'Tap what you have'}</h2>
         <p className="muted">{live.ids.length ? 'It fills as you tap. Heavy syrups sink, fizz floats, bubbles rise.' : 'Pick ingredients from your pantry. The glass fills in real time and we match drinks you can make.'}</p>
@@ -41,9 +46,8 @@ export default function Stage({ lab, view, live, units, setUnits, close, night }
     <section className="stage guide" aria-label="Pour guide">
       <div className="guide-top"><button className="link" onClick={close}>← Back to pantry</button>
         <div className="seg" role="group" aria-label="Units"><button className={units === 'ml' ? 'on' : ''} onClick={() => setUnits('ml')}>ml</button><button className={units === 'spoons' ? 'on' : ''} onClick={() => setUnits('spoons')}>cups & spoons</button></div></div>
-      <div className="glass-wrap" onClick={() => setTick(t => t + 1)} title="Tap to replay the pour">
-        <Glass layers={v.layers} replayKey={v.key + tick} glass={v.glass} temp={v.temp} carbonated={v.carbonated} build={v.build} garnish={v.garnish} ingredientIds={v.ings.map(i => i.id)} />
-        <button className="replay" onClick={e => { e.stopPropagation(); setTick(t => t + 1); }}>↻ Replay pour</button>
+      <div className="glass-wrap">
+        <PourGlass seq={seq} replayKey={v.key + tick} glass={v.glass} temp={v.temp} carbonated={v.carbonated} garnish={v.garnish} ingredientIds={v.ings.map(i => i.id)} />
       </div>
       <div className="stage-body">
         <p className="kicker">{v.kicker}</p>
@@ -52,11 +56,13 @@ export default function Stage({ lab, view, live, units, setUnits, close, night }
         {v.warnings.map((w, i) => <div className="warn" key={i} role="alert"><b>Heads up:</b> {w.msg} {w.fix && <span>{w.fix}</span>}</div>)}
         <div className="two">
           <div><h3>Ingredients</h3>
-            <ul className="ings">{v.ings.map(i => <li key={i.id}><b>{formatAmount(i, units)}</b> {nm(i.id)}</li>)}</ul>
+            <ul className="ings">{v.ings.map(i => <li key={i.id}><b>{formatAmount(i, units)}</b> {nm(i.id)}</li>)}{v.extras.map(x => <li key={x} className="extra"><b>Also</b> {x}</li>)}</ul>
             {v.subs.length > 0 && <div className="subs"><h4>Your swaps</h4>{v.subs.map(s => <p key={s.needs}><b>{nm(s.use)}</b> for {nm(s.needs).toLowerCase()}. {s.note}</p>)}</div>}</div>
           <div><h3>Flavor profile</h3><Radar v={v.flavor} /></div>
         </div>
-        <h3>Build order</h3>
+        {seq && seq.steps.length > 0 && <><h3>Pour order <small className="muted">worked out from the ingredients</small></h3>
+          <ol className="steps gen">{seq.steps.map((s: any, i: number) => <li key={i}>{s.label}</li>)}</ol></>}
+        <h3>{v.custom ? 'How to make it' : 'Recipe method'}</h3>
         <ol className="steps">{v.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
         <dl className="meta"><div><dt>Glass</dt><dd>{v.glass}</dd></div><div><dt>Method</dt><dd>{v.build}</dd></div><div><dt>Serve</dt><dd>{v.temp === 'hot' ? 'Hot' : v.temp === 'blended' ? 'Blended' : v.temp === 'cold' ? 'Chilled' : 'Over ice'}</dd></div>{v.garnish && <div><dt>Garnish</dt><dd>{v.garnish}</dd></div>}</dl>
         {v.tastesLike && v.tastesLike.length > 0 && <p className="muted">Tastes a bit like: {v.tastesLike.join(', ')}.</p>}

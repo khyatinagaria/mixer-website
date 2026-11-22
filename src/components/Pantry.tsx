@@ -35,7 +35,7 @@ export default function Pantry({ lab, pantry, toggle, suggested, clear }: Props)
         <h2>Your pantry</h2>
         {pantry.length > 0 && <button className="link" onClick={clear}>Clear all ({pantry.length})</button>}
       </div>
-      <input className="search" type="search" placeholder="Search 100 ingredients…" value={q} onChange={e => setQ(e.target.value)} aria-label="Search ingredients" />
+      <input className="search" type="search" placeholder={`Search ${lab.ingredients.length} ingredients…`} value={q} onChange={e => setQ(e.target.value)} aria-label="Search ingredients" />
       {query ? (
         <div className="chips">{lab.ingredients.filter(i => i.name.toLowerCase().includes(query)).map(chip)}
           {!lab.ingredients.some(i => i.name.toLowerCase().includes(query)) && <p className="muted">Nothing matches "{q}".</p>}</div>
