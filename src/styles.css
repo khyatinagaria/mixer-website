@@ -20,17 +20,17 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .muted { color: var(--quiet); font-size: 0.92rem; } .tiny { font-size: 0.8rem; }
 
 .app { max-width: 1480px; margin: 0 auto; padding: 0 16px 40px; }
-.top { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; gap: 12px; }
+.top { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; gap: 12px; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-mark { font-size: 2rem; color: var(--accent); line-height: 1; }
 .brand h1 { font: 400 1.15rem/1.1 var(--display); letter-spacing: 0.02em; text-transform: uppercase; }
 .brand p { font-size: 0.8rem; color: var(--quiet); }
 .theme { border: 2px solid var(--ink); background: transparent; padding: 6px 14px; border-radius: 99px; font-weight: 700; font-size: 0.85rem; }
-.hero { background: var(--accent); color: var(--on-accent); border-radius: 20px; padding: 22px 26px; margin-bottom: 18px; position: relative; overflow: hidden; }
-.hero::after { content: ''; position: absolute; right: -50px; top: -60px; width: 230px; height: 230px; border-radius: 50%; background: radial-gradient(circle, var(--accent2) 0 38%, transparent 39%), repeating-conic-gradient(from 0deg, var(--accent2) 0 7deg, transparent 7deg 18deg); opacity: 0.55; }
-.hero span { font-weight: 700; font-size: 0.8rem; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.9; }
-.hero h2 { font: 400 clamp(1.8rem, 5vw, 3rem)/1.05 var(--display); text-transform: uppercase; margin: 4px 0 6px; position: relative; z-index: 1; }
-.hero p { max-width: 560px; position: relative; z-index: 1; }
+.hero { background: var(--accent); color: var(--on-accent); border-radius: 16px; padding: 10px 20px 12px; margin-bottom: 14px; position: relative; overflow: hidden; }
+.hero::after { content: ''; position: absolute; right: -26px; top: -30px; width: 120px; height: 120px; border-radius: 50%; background: radial-gradient(circle, var(--accent2) 0 38%, transparent 39%), repeating-conic-gradient(from 0deg, var(--accent2) 0 7deg, transparent 7deg 18deg); opacity: 0.55; }
+.hero span { font-weight: 700; font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.9; }
+.hero h2 { font: 400 clamp(1.35rem, 3.4vw, 1.9rem)/1.05 var(--display); text-transform: uppercase; margin: 2px 0 3px; position: relative; z-index: 1; }
+.hero p { max-width: 640px; font-size: 0.86rem; line-height: 1.35; position: relative; z-index: 1; }
 
 .layout { display: flex; flex-direction: column; gap: 18px; }
 .col-stage { order: -1; } .col-left, .col-results { min-width: 0; display: flex; flex-direction: column; gap: 18px; }

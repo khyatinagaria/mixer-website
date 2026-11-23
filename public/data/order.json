@@ -1,68 +1,80 @@
 {
  "rolePos": {
-  "acid": 0.324,
+  "acid": 0.296,
   "ice": 0.727,
   "syrup": 0.414,
-  "juice": 0.259,
-  "fizz": 0.855,
-  "solid": 0.309,
-  "tea": 0.183,
-  "fruit": 0.11,
-  "herb": 0.157,
+  "juice": 0.269,
+  "fizz": 0.862,
+  "solid": 0.303,
+  "tea": 0.192,
+  "fruit": 0.106,
+  "herb": 0.162,
   "spice": 0.527,
-  "water": 0.541,
-  "creamy": 0.492,
-  "scoop": 0.582,
-  "coffee": 0.455,
-  "powder": 0.394,
+  "water": 0.535,
+  "creamy": 0.497,
+  "scoop": 0.579,
+  "coffee": 0.48,
+  "powder": 0.407,
   "hot": {
-   "syrup": 0.68,
-   "coffee": 0.652,
-   "creamy": 0.626,
+   "syrup": 0.664,
+   "coffee": 0.681,
+   "creamy": 0.637,
+   "water": 0.405,
    "solid": 0.356,
    "tea": 0.199,
    "spice": 0.412,
-   "powder": 0.143,
-   "acid": 0.571,
-   "water": 0.416
+   "powder": 0.214,
+   "acid": 0.571
   },
   "cold": {
-   "acid": 0.296,
+   "acid": 0.269,
    "ice": 0.727,
-   "syrup": 0.343,
-   "juice": 0.267,
-   "fizz": 0.855,
-   "solid": 0.294,
-   "tea": 0.174,
-   "fruit": 0.094,
-   "herb": 0.161,
+   "syrup": 0.347,
+   "juice": 0.277,
+   "fizz": 0.862,
+   "solid": 0.285,
+   "tea": 0.189,
+   "fruit": 0.089,
+   "herb": 0.166,
    "spice": 0.574,
-   "water": 0.616,
-   "creamy": 0.45,
-   "scoop": 0.582,
-   "coffee": 0.356,
+   "water": 0.613,
+   "creamy": 0.453,
+   "scoop": 0.579,
+   "coffee": 0.371,
    "powder": 0.454
   }
  },
  "ingPos": {
   "lime_juice": {
-   "pos": 0.38,
-   "n": 16
+   "pos": 0.32,
+   "n": 19
+  },
+  "agave": {
+   "pos": 0.396,
+   "n": 8
   },
   "tonic": {
    "pos": 0.819,
    "n": 12
   },
+  "cherry_juice": {
+   "pos": 0.604,
+   "n": 8
+  },
   "simple_syrup": {
-   "pos": 0.46,
-   "n": 109
+   "pos": 0.448,
+   "n": 112
   },
   "soda_water": {
-   "pos": 0.871,
-   "n": 96
+   "pos": 0.873,
+   "n": 100
+  },
+  "lemon_juice": {
+   "pos": 0.334,
+   "n": 45
   },
   "apple_juice": {
-   "pos": 0.229,
+   "pos": 0.26,
    "n": 8
   },
   "honey": {
@@ -70,44 +82,44 @@
    "n": 72
   },
   "orange_juice": {
-   "pos": 0.25,
-   "n": 8
+   "pos": 0.325,
+   "n": 10
   },
   "hibiscus_tea": {
    "pos": 0.271,
    "n": 8
   },
   "mint": {
-   "pos": 0.179,
-   "n": 25
+   "pos": 0.185,
+   "n": 26
   },
   "black_salt": {
    "pos": 0.786,
    "n": 11
   },
   "water": {
-   "pos": 0.541,
-   "n": 96
+   "pos": 0.535,
+   "n": 99
   },
   "green_tea": {
    "pos": 0.213,
    "n": 9
   },
   "jaggery": {
-   "pos": 0.444,
-   "n": 15
+   "pos": 0.49,
+   "n": 16
   },
   "cardamom": {
    "pos": 0.337,
    "n": 10
   },
+  "black_tea": {
+   "pos": 0.254,
+   "n": 23
+  },
   "mango_pulp": {
    "pos": 0.022,
    "n": 9
-  },
-  "black_tea": {
-   "pos": 0.231,
-   "n": 21
   },
   "coconut_water": {
    "pos": 0.479,
@@ -118,16 +130,16 @@
    "n": 10
   },
   "milk": {
-   "pos": 0.557,
+   "pos": 0.565,
    "n": 127
   },
   "ice_cream": {
-   "pos": 0.582,
-   "n": 50
+   "pos": 0.579,
+   "n": 49
   },
   "espresso": {
-   "pos": 0.5,
-   "n": 23
+   "pos": 0.521,
+   "n": 24
   },
   "oat_milk": {
    "pos": 0.531,
@@ -165,17 +177,13 @@
    "pos": 0.192,
    "n": 8
   },
-  "lemon_juice": {
-   "pos": 0.354,
-   "n": 41
+  "sabja": {
+   "pos": 0.3,
+   "n": 9
   },
   "rose_syrup": {
-   "pos": 0.22,
+   "pos": 0.264,
    "n": 15
-  },
-  "sabja": {
-   "pos": 0.374,
-   "n": 9
   },
   "yogurt": {
    "pos": 0.158,
@@ -211,11 +219,11 @@
   }
  },
  "stats": {
-  "drinks_with_order_signal": 425,
+  "drinks_with_order_signal": 434,
   "of": 629,
   "pairwise_accuracy_physics_only": 0.71,
-  "pairwise_accuracy_physics_plus_learned": 0.727,
-  "pairs_evaluated": 1577,
+  "pairwise_accuracy_physics_plus_learned": 0.726,
+  "pairs_evaluated": 1660,
   "cv": "5-fold, learned order trained on 4 folds and scored on the 5th"
  }
 }

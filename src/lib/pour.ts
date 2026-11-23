@@ -23,7 +23,7 @@ export const SHAPES: Record<GlassShape, { d: string; rim: number; bottom: number
 
 export type SeqStep = {
   i: number; kind: string; ids: string[]; label: string; dur: number;
-  ml?: number; color?: string; opacity?: number; density?: number; flow?: string; cubes?: number; strained?: boolean; blendedPour?: boolean; gentle?: boolean;
+  into?: string; ml?: number; color?: string; opacity?: number; density?: number; flow?: string; cubes?: number; strained?: boolean; blendedPour?: boolean; gentle?: boolean;
 };
 export type Seq = { steps: SeqStep[]; layered: boolean; blended: boolean; shaken: boolean; totalMl: number; color: string; roles: Record<string, string>; duration: number };
 export type PlayerOpts = { glass: string; temp: string; carbonated: boolean; garnish: string; ingredientIds: string[]; ingredientNames?: Record<string, string> };
@@ -33,7 +33,8 @@ const GARNISHES: { re: RegExp; kind: 'wheel' | 'leaf' | 'cherry' | 'stick' | 'st
   { re: /lemon/i, kind: 'wheel', color: '#F6E05E' },
   { re: /lime/i, kind: 'wheel', color: '#8BC34A' },
   { re: /grapefruit/i, kind: 'wheel', color: '#F48A7B' },
-  { re: /pineapple|mango|peach|apricot|melon|kiwi|apple|pear/i, kind: 'wheel', color: '#F5C518' },
+  { re: /green apple|apple|pear/i, kind: 'wheel', color: '#B9D96C' },
+  { re: /pineapple|mango|peach|apricot|melon|kiwi/i, kind: 'wheel', color: '#F5C518' },
   { re: /cucumber/i, kind: 'wheel', color: '#9BCB6A' },
   { re: /mint|basil|sage|coriander|rosemary|thyme|tulsi|curry leaf/i, kind: 'leaf', color: '#3FA34D' },
   { re: /cherry|cranberr|pomegranate|strawberr|berry|berries/i, kind: 'cherry', color: '#C1121F' },
@@ -58,18 +59,24 @@ function mulberry32(a: number) { return () => { a |= 0; a = (a + 0x6d2b79f5) | 0
 export const CANVAS_W = 300, CANVAS_H = 430, OX = 30, OY = 92;
 const PAUSE_END = 0.7; // seconds of "ready" hold before the idle loop
 
-type P = { k: string; x: number; y: number; vx: number; vy: number; life: number; max: number; r: number; c: number[]; ph: number };
+type P = { ct: string; k: string; x: number; y: number; vx: number; vy: number; life: number; max: number; r: number; c: number[]; ph: number };
 type Layer = { j: number; ml: number; base: number[]; color: number[]; opacity: number; fizz: boolean; mix: number };
-type Vessel = { kind: string; x: number; y: number; angle: number; fill: number; color: number[]; head: number; tail: number; impactX: number; flow: string; width: number; spoon: boolean; ml: number };
+type Vessel = { into: string; kind: string; x: number; y: number; angle: number; fill: number; color: number[]; head: number; tail: number; impactX: number; flow: string; width: number; spoon: boolean; ml: number };
 type Cube = { k: number; x0: number; size: number; rot: number; tDrop: number; tLand: number; lift: number };
+type Shp = { d: string; rim: number; bottom: number; extra: string };
+type Ctr = { name: string; shape: Shp; path: Path2D; extra: Path2D | null; rows: { l: number; r: number }[]; floorY: number; rimY: number; cx: number; pxPerMl: number; events: { t0: number; x: number; amp: number }[]; cubes: Cube[] };
+const SHAKER: Shp = { d: 'M78 150 L162 150 L154 302 Q120 311 86 302 Z', rim: 150, bottom: 306, extra: '' };
 const ICE_SLOTS: number[][] = [[-25, 0], [22, 0], [-2, -0.74], [-27, -0.7], [26, -0.7], [-2, 0.05]];
 
 export class PourPlayer {
   private ctx: CanvasRenderingContext2D;
-  private shape: { d: string; rim: number; bottom: number; extra: string };
-  private path: Path2D;
-  private extra: Path2D | null;
+  private shape!: Shp;
+  private path!: Path2D;
+  private extra: Path2D | null = null;
   private rows: { l: number; r: number }[] = [];
+  private ctrs: Record<string, Ctr> = {};
+  private active = 'glass';
+  private glassShape: Shp;
   private steps: SeqStep[] = [];
   private starts: number[] = [];
   private total = 0;
@@ -77,7 +84,7 @@ export class PourPlayer {
   private opts: PlayerOpts;
   private cap: number;
   private hot: boolean; private cold: boolean; private blendedDrink: boolean;
-  private pxPerMl = 1; private floorY: number; private rimY: number; private cx = 120;
+  private pxPerMl = 1; private floorY = 0; private rimY = 0; private cx = 120;
   private events: { t0: number; x: number; amp: number }[] = [];
   private cubes: Cube[] = [];
   private ps: P[] = [];
@@ -96,15 +103,9 @@ export class PourPlayer {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('canvas unsupported');
     this.ctx = ctx;
-    const shapeKey = shapeFor(opts.glass);
-    this.shape = SHAPES[shapeKey];
-    this.path = new Path2D(this.shape.d);
-    this.extra = this.shape.extra ? new Path2D(this.shape.extra) : null;
+    this.glassShape = SHAPES[shapeFor(opts.glass)];
     this.cap = GLASS_ML[opts.glass] || 300;
     this.hot = opts.temp === 'hot'; this.blendedDrink = opts.temp === 'blended'; this.cold = !this.hot && !this.blendedDrink;
-    this.floorY = this.shape.bottom - 4; this.rimY = this.shape.rim;
-    this.measureRows();
-    this.cx = this.rows.length ? (this.rows[Math.min(this.rows.length - 1, 20)].l + this.rows[Math.min(this.rows.length - 1, 20)].r) / 2 : 120;
     this.setSeq(seq);
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     canvas.width = Math.round(CANVAS_W * dpr); canvas.height = Math.round(CANVAS_H * dpr);
@@ -122,15 +123,24 @@ export class PourPlayer {
     const g = (n: string, d: string) => cs.getPropertyValue(n).trim() || d;
     this.colors = { ink: g('--ink', '#2b1a12'), glass: g('--glass-bg', '#fffdf8'), quiet: g('--quiet', '#7a6450') };
   }
-  private measureRows() {
+  private makeCtr(name: string, shape: Shp): Ctr {
+    const path = new Path2D(shape.d);
     const c = document.createElement('canvas'); c.width = 240; c.height = 340;
-    const cx = c.getContext('2d')!;
-    for (let y = this.shape.rim; y <= this.shape.bottom; y++) {
+    const cx2 = c.getContext('2d')!; const rows: { l: number; r: number }[] = [];
+    for (let y = shape.rim; y <= shape.bottom; y++) {
       let l = -1, r = -1;
-      for (let x = 0; x <= 240; x++) if (cx.isPointInPath(this.path, x, y)) { if (l < 0) l = x; r = x; }
-      this.rows.push(l < 0 ? { l: 120, r: 120 } : { l, r });
+      for (let x = 0; x <= 240; x++) if (cx2.isPointInPath(path, x, y)) { if (l < 0) l = x; r = x; }
+      rows.push(l < 0 ? { l: 120, r: 120 } : { l, r });
     }
+    const r0 = rows[Math.min(rows.length - 1, 20)];
+    return { name, shape, path, extra: shape.extra ? new Path2D(shape.extra) : null, rows, floorY: shape.bottom - 4, rimY: shape.rim, cx: rows.length ? (r0.l + r0.r) / 2 : 120, pxPerMl: 1, events: [], cubes: [] };
   }
+  /** make one container (the glass or the shaker) the active one: every geometry helper reads these fields */
+  private useCtr(name: string) {
+    const c = this.ctrs[name] || this.ctrs.glass; this.active = c.name;
+    this.shape = c.shape; this.path = c.path; this.extra = c.extra; this.rows = c.rows; this.floorY = c.floorY; this.rimY = c.rimY; this.cx = c.cx; this.pxPerMl = c.pxPerMl; this.events = c.events; this.cubes = c.cubes;
+  }
+  private mine(st: SeqStep) { return (st.into || 'glass') === this.active; }
   private rowAt(y: number) { const i = clamp(Math.round(y - this.shape.rim), 0, this.rows.length - 1); return this.rows[i]; }
 
   setSeq(seq: Seq) {
@@ -138,32 +148,43 @@ export class PourPlayer {
     this.starts = []; let s = 0;
     for (const st of this.steps) { this.starts.push(s); s += st.dur; }
     this.total = s;
-    const liquidMl = this.steps.filter(x => (x.kind === 'pour' || x.kind === 'float' || (x.kind === 'top' && x.flow === 'fizz'))).reduce((a, x) => a + (x.ml || 0), 0) || 1;
-    const hasIce = this.steps.some(x => x.kind === 'ice');
-    const fillH = (this.shape.bottom - this.shape.rim) * clamp(Math.max(liquidMl, 120) / this.cap, 0.5, 0.88) * (hasIce ? 0.86 : 1);
-    this.pxPerMl = fillH / Math.max(liquidMl, 120 * 0.9);
-    // ripple events: stream impacts, ice, scoop
-    this.events = []; this.cubes = [];
-    const lr = mulberry32(99);
-    this.steps.forEach((st, j) => {
-      const s0 = this.starts[j], d = st.dur;
-      if (st.kind === 'pour' || st.kind === 'float' || (st.kind === 'top' && st.flow === 'fizz')) {
-        const amp = st.flow === 'float' ? 0.35 : st.flow === 'thick' ? 0.9 : st.flow === 'fizz' ? 1.6 : 1.5;
-        for (let tt = s0 + 0.28 * d; tt < s0 + 0.82 * d; tt += 0.11) this.events.push({ t0: tt, x: this.cx - (st.flow === 'float' ? 16 : 0) + (lr() - 0.5) * 6, amp });
-        this.events.push({ t0: s0 + 0.84 * d, x: this.cx, amp: amp * 1.2 });
-      }
-      if (st.kind === 'ice') {
-        const n = st.cubes || 4;
-        for (let k = 0; k < n; k++) {
-          const tDrop = s0 + d * (0.08 + (0.62 * k) / n), fall = 0.36;
-          const slot = ICE_SLOTS[k % ICE_SLOTS.length];
-          this.cubes.push({ k, x0: this.cx + slot[0] + (lr() - 0.5) * 5, size: 33 + lr() * 5, rot: (lr() - 0.5) * 0.9, tDrop, tLand: tDrop + fall, lift: slot[1] });
-          this.events.push({ t0: tDrop + fall, x: this.cx + slot[0], amp: 2.6 });
+    const names = this.steps.some(x => x.into === 'shaker') ? ['shaker', 'glass'] : ['glass'];
+    this.ctrs = {};
+    for (const name of names) {
+      const ctr = this.makeCtr(name, name === 'shaker' ? SHAKER : this.glassShape);
+      this.ctrs[name] = ctr; this.useCtr(name);
+      const inC = (x: SeqStep) => (x.into || 'glass') === name;
+      const isLiq = (x: SeqStep) => x.kind === 'pour' || x.kind === 'float' || (x.kind === 'top' && x.flow === 'fizz');
+      const liquidMl = this.steps.filter(x => isLiq(x) && inC(x)).reduce((a, x) => a + (x.ml || 0), 0) || 1;
+      const hasIce = this.steps.some(x => x.kind === 'ice' && inC(x));
+      const cap = name === 'shaker' ? 330 : this.cap;
+      const fillH = (ctr.shape.bottom - ctr.shape.rim) * clamp(Math.max(liquidMl, 120) / cap, 0.45, 0.88) * (hasIce ? 0.86 : 1);
+      ctr.pxPerMl = fillH / Math.max(liquidMl, 120 * 0.9);
+      const lr = mulberry32(99 + names.length);
+      this.steps.forEach((st, j) => {
+        if (!inC(st)) return;
+        const s0 = this.starts[j], d = st.dur;
+        if (isLiq(st)) {
+          const amp = st.flow === 'float' ? 0.35 : st.flow === 'thick' ? 0.9 : st.flow === 'fizz' ? 1.6 : 1.5;
+          for (let tt = s0 + 0.28 * d; tt < s0 + 0.82 * d; tt += 0.11) ctr.events.push({ t0: tt, x: ctr.cx - (st.flow === 'float' ? 16 : 0) + (lr() - 0.5) * 6, amp });
+          ctr.events.push({ t0: s0 + 0.84 * d, x: ctr.cx, amp: amp * 1.2 });
         }
-      }
-      if (st.kind === 'scoop') this.events.push({ t0: s0 + 0.6 * d, x: this.cx, amp: 2 });
-      if (st.kind === 'stir') for (let tt = s0 + 0.15 * d; tt < s0 + 0.9 * d; tt += 0.2) this.events.push({ t0: tt, x: this.cx + Math.cos(tt * 12) * 20, amp: st.gentle ? 0.5 : 0.9 });
-    });
+        if (st.kind === 'ice') {
+          const n = st.cubes || 4;
+          for (let k = 0; k < n; k++) {
+            const tDrop = s0 + d * (0.08 + (0.62 * k) / n), fall = 0.36;
+            const slot = ICE_SLOTS[k % ICE_SLOTS.length];
+            ctr.cubes.push({ k, x0: ctr.cx + slot[0] + (lr() - 0.5) * 5, size: 33 + lr() * 5, rot: (lr() - 0.5) * 0.9, tDrop, tLand: tDrop + fall, lift: slot[1] });
+            ctr.events.push({ t0: tDrop + fall, x: ctr.cx + slot[0], amp: 2.6 });
+          }
+        }
+        if (st.kind === 'scoop') ctr.events.push({ t0: s0 + 0.6 * d, x: ctr.cx, amp: 2 });
+        if (st.kind === 'stir') for (let tt = s0 + 0.15 * d; tt < s0 + 0.9 * d; tt += 0.2) ctr.events.push({ t0: tt, x: ctr.cx + Math.cos(tt * 12) * 20, amp: st.gentle ? 0.5 : 0.9 });
+        if (st.kind === 'shake') for (let tt = s0 + 0.1 * d; tt < s0 + 0.85 * d; tt += 0.06) ctr.events.push({ t0: tt, x: ctr.cx + (lr() - 0.5) * 40, amp: 2.2 });
+      });
+    }
+    // the shaker's own steps (pour into it, ice, shake) all happen in the shaker container
+    this.useCtr('glass');
     this.garnishSpec = null;
     const gs = this.steps.find(x => x.kind === 'garnish');
     if (gs) {
@@ -230,7 +251,7 @@ export class PourPlayer {
     const out: Layer[] = [];
     this.steps.forEach((st, j) => {
       const isLiquid = (st.kind === 'pour' || st.kind === 'float' || (st.kind === 'top' && st.flow === 'fizz'));
-      if (!isLiquid) return;
+      if (!isLiquid || !this.mine(st)) return;
       const d = st.dur, p = clamp((t - this.starts[j] - 0.22 * d) / (0.58 * d));
       if (p <= 0) return;
       const base = rgb(st.color || '#ccc');
@@ -238,7 +259,7 @@ export class PourPlayer {
     });
     // stirring blends the layers that existed when the spoon went in
     this.steps.forEach((st, k) => {
-      if (st.kind !== 'stir') return;
+      if (st.kind !== 'stir' || !this.mine(st)) return;
       const q = clamp((t - this.starts[k] - 0.1 * st.dur) / (0.75 * st.dur));
       if (q <= 0) return;
       const target = rgb(st.color || '#ccc'), amt = easeIO(q) * (st.gentle ? 0.4 : 1);
@@ -248,7 +269,7 @@ export class PourPlayer {
   }
   private mixOf(t: number) { // 0..1 how stirred the drink currently is (drives swirl streaks)
     let m = 0;
-    this.steps.forEach((st, k) => { if (st.kind === 'stir') { const q = clamp((t - this.starts[k]) / st.dur); if (q > 0 && q < 1) m = Math.max(m, Math.sin(q * Math.PI)); } });
+    this.steps.forEach((st, k) => { if (st.kind === 'stir' && this.mine(st)) { const q = clamp((t - this.starts[k]) / st.dur); if (q > 0 && q < 1) m = Math.max(m, Math.sin(q * Math.PI)); } });
     return m;
   }
   private iceDisp(t: number) { let d = 0; for (const c of this.cubes) d += clamp((t - c.tLand) / 0.3) * 0.032; return d; }
@@ -268,6 +289,7 @@ export class PourPlayer {
   private foamAt(t: number) {
     let f = 0;
     this.steps.forEach((st, j) => {
+      if (!this.mine(st)) return;
       if (st.kind === 'top' && st.flow === 'fizz') f = Math.max(f, 7 * easeOut(clamp((t - this.starts[j] - 0.3 * st.dur) / (0.6 * st.dur))) * (1 - 0.35 * clamp((t - this.starts[j] - st.dur) / 2)));
       else if (st.kind === 'pour' && st.flow === 'fizz') f = Math.max(f, 6 * easeOut(clamp((t - this.starts[j] - 0.3 * st.dur) / (0.6 * st.dur))));
       if (st.kind === 'pour' && st.blendedPour) f = Math.max(f, 6 * easeOut(clamp((t - this.starts[j] - 0.5 * st.dur) / (0.5 * st.dur))));
@@ -281,19 +303,22 @@ export class PourPlayer {
       if (u < 0 || u > 1) continue;
       const pours = st.kind === 'pour' || st.kind === 'float' || (st.kind === 'top' && st.flow === 'fizz');
       if (!pours) continue;
+      const into = st.into || 'glass', prevCtr = this.active; this.useCtr(into);
       const role = (st.ids && st.ids.length ? this.seq.roles[st.ids[0]] : '') || '';
       let kind = 'jug';
       if (st.strained) kind = 'tin'; else if (st.blendedPour) kind = 'jar'; else if (st.flow === 'fizz') kind = 'bottle'; else if (role === 'syrup') kind = 'bottle'; else if (role === 'coffee') kind = 'shot';
       const enter = easeIO(clamp(u / 0.22)), exit = easeIO(clamp((u - 0.8) / 0.2));
       const pose = enter * (1 - exit);
-      const px = this.cx + (kind === 'shot' ? 22 : 30), py = this.rimY - 30 - (kind === 'jug' || kind === 'jar' || kind === 'tin' ? 4 : 0);
+      const px = this.cx + (kind === 'shot' ? 22 : kind === 'tin' ? 12 : 30), py = this.rimY - 30 - (kind === 'jug' || kind === 'jar' || kind === 'tin' ? 4 : 0);
       const p = clamp((u - 0.22) / 0.58);
       const tilt = (kind === 'shot' ? 1.45 : 1.1 + 0.28 * p) * pose;
       const x = lerp(px + 130, px, easeOut(pose)), y = lerp(py - 40, py, easeOut(pose));
       const head = easeOut(clamp((u - 0.2) / 0.07)), tail = easeIn(clamp((u - 0.79) / 0.08));
       const spoon = st.kind === 'float';
       const w = clamp(4.2 + Math.sqrt(st.ml || 30) * 0.36, 5, 11) * (st.flow === 'thick' ? 0.62 : st.flow === 'thin' ? 0.85 : 1);
-      return { kind, x, y, angle: -tilt, fill: lerp(0.85, 0.12, p), color: rgb(st.color || '#ccc'), head, tail, impactX: this.cx - (spoon ? 0 : 2), flow: st.flow || 'normal', width: spoon ? 15 : w, spoon, ml: st.ml || 0 };
+      const out = { into, kind, x, y, angle: -tilt, fill: lerp(0.85, 0.12, p), color: rgb(st.color || '#ccc'), head, tail, impactX: this.cx - (spoon ? 0 : 2), flow: st.flow || 'normal', width: spoon ? 15 : w, spoon, ml: st.ml || 0 };
+      this.useCtr(prevCtr);
+      return out;
     }
     return null;
   }
@@ -307,15 +332,12 @@ export class PourPlayer {
   private surf(t: number, layers: Layer[]) { return this.liquidTop(layers, t); }
   private spawn(k: string, x: number, y: number, vx: number, vy: number, max: number, r: number, c: number[]) {
     if (this.ps.length > 420) return;
-    this.ps.push({ k, x, y, vx, vy, life: 0, max, r, c, ph: this.rng() * 6.28 });
+    this.ps.push({ ct: this.active, k, x, y, vx, vy, life: 0, max, r, c, ph: this.rng() * 6.28 });
   }
-  private simOnce(t: number, dt: number, idle = false) {
+  private simSpawn(t: number, dt: number, top: number, layers: Layer[]) {
     const R = this.rng;
-    const layers = this.layersAt(Math.min(t, this.total + 5));
-    const top = this.surf(Math.min(t, this.total + 5), layers);
-    const wall = (y: number) => this.rowAt(y);
-    if (!idle) {
       this.steps.forEach((st, j) => {
+        if (!this.mine(st)) return;
         const s0 = this.starts[j], d = st.dur, u = (t - s0) / d;
         if (u < 0 || u > 1) return;
         const pours = st.kind === 'pour' || st.kind === 'float' || (st.kind === 'top' && st.flow === 'fizz');
@@ -336,29 +358,58 @@ export class PourPlayer {
         if (st.kind === 'dust' && u > 0.1 && u < 0.8 && R() < 45 * dt) { const c = rgb(st.color || '#8a5a2b'); this.spawn('dust', this.cx + (R() - 0.5) * 70, this.rimY - 38 + R() * 8, (R() - 0.5) * 24, 70 + R() * 30, 99, 0.9 + R() * 0.9, c); }
         if (st.kind === 'whisk' || st.kind === 'blend' || st.kind === 'shake') { /* drawn procedurally */ }
       });
+  }
+
+  private simOnce(t: number, dt: number, idle = false) {
+    const R = this.rng;
+    const tt = Math.min(t, this.total + 5);
+    const tops: Record<string, number> = {}, lay: Record<string, Layer[]> = {};
+    for (const name of Object.keys(this.ctrs)) {
+      this.useCtr(name); lay[name] = this.layersAt(tt); tops[name] = this.surf(tt, lay[name]);
+      if (!idle) this.simSpawn(t, dt, tops[name], lay[name]);
     }
+    this.useCtr('glass');
+    const layers = lay.glass, top = tops.glass;
+    const wall = (y: number) => this.rowAt(y);
     // continuous: bubbles in fizzy drinks, steam on hot drinks
     const fizzy = layers.some(l => l.fizz) || (this.opts.carbonated && layers.length > 1 && t > this.total * 0.5);
     if (fizzy && layers.length && R() < 9 * dt) { const row = wall(this.floorY - 10); this.spawn('bubble', lerp(row.l + 10, row.r - 10, R()), this.floorY - 6, 0, -(22 + R() * 18), 9, 1 + R() * 1.8, [255, 255, 255]); }
     if (this.hot && layers.length && top < this.floorY - 30 && R() < 5 * dt) this.spawn('steam', this.cx + (R() - 0.5) * 60, this.rimY - 4, (R() - 0.5) * 6, -(14 + R() * 8), 2.6, 5 + R() * 4, [255, 255, 255]);
     // update
     for (const p of this.ps) {
+      const c = this.ctrs[p.ct] || this.ctrs.glass, top = tops[p.ct] ?? tops.glass, floorY = c.floorY;
       p.life += dt;
       if (p.k === 'drop') { p.vy += 380 * dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.y > top && p.vy > 0) p.life = p.max; }
       else if (p.k === 'bubble') { p.y += p.vy * dt; p.x += Math.sin(p.life * 6 + p.ph) * 6 * dt + p.vx * dt; if (p.y <= top + 1.5) p.life = p.max; }
       else if (p.k === 'steam') { p.y += p.vy * dt; p.x += (Math.sin(p.life * 2 + p.ph) * 9 + p.vx) * dt; p.r += dt * 5; }
-      else if (p.k === 'bit') { p.vy += 300 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.96; if (p.y > this.floorY - p.r - 1) { p.y = this.floorY - p.r - 1 - (p.ph % 3); p.vy = 0; p.vx = 0; p.k = 'rest'; } }
-      else if (p.k === 'solid') { const inLiq = p.y > top; p.vy = inLiq ? Math.min(p.vy, 22) : p.vy + 200 * dt; p.y += p.vy * dt; p.x += Math.sin(p.life * 3 + p.ph) * 4 * dt; if (p.y > this.floorY - p.r - 1) { p.y = this.floorY - p.r - 1 - (p.ph % 4); p.vy = 0; p.k = 'rest'; } }
+      else if (p.k === 'bit') { p.vy += 300 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.96; if (p.y > floorY - p.r - 1) { p.y = floorY - p.r - 1 - (p.ph % 3); p.vy = 0; p.vx = 0; p.k = 'rest'; } }
+      else if (p.k === 'solid') { const inLiq = p.y > top; p.vy = inLiq ? Math.min(p.vy, 22) : p.vy + 200 * dt; p.y += p.vy * dt; p.x += Math.sin(p.life * 3 + p.ph) * 4 * dt; if (p.y > floorY - p.r - 1) { p.y = floorY - p.r - 1 - (p.ph % 4); p.vy = 0; p.k = 'rest'; } }
       else if (p.k === 'dust') { p.y += p.vy * dt; p.x += p.vx * dt; p.vx *= 0.97; if (p.y >= top) { p.k = 'speck'; p.y = top; } }
     }
     this.ps = this.ps.filter(p => p.k === 'rest' || p.k === 'speck' || p.life < p.max);
     // clamp stuff into the glass
-    for (const p of this.ps) { if (p.k === 'rest' || p.k === 'speck') continue; const row = wall(clamp(p.y, this.rimY, this.floorY)); if (p.y > this.rimY) p.x = clamp(p.x, row.l + 3, row.r - 3); }
+    for (const p of this.ps) { if (p.k === 'rest' || p.k === 'speck') continue; const c = this.ctrs[p.ct] || this.ctrs.glass; const row = c.rows[clamp(Math.round(clamp(p.y, c.rimY, c.floorY) - c.shape.rim), 0, c.rows.length - 1)]; if (p.y > c.rimY) p.x = clamp(p.x, row.l + 3, row.r - 3); }
     // bound the number of resting bits so seeking stays cheap
     if (this.ps.length > 380) this.ps = this.ps.filter((p, i) => p.k !== 'rest' || i % 2 === 0);
   }
 
   // ---------- drawing ----------
+  private shakeInfo() { const j = this.steps.findIndex(x => x.kind === 'shake'); return j < 0 ? null : { s: this.starts[j], d: this.steps[j].dur }; }
+  /** where each container is on stage: the shaker stands where the glass will be until it is shaken, then the glass slides in */
+  private ctrPose(name: string, t: number) {
+    const sk = this.shakeInfo();
+    if (!sk || !this.ctrs.shaker) return { show: true, dx: 0, dy: 0, rot: 0, cap: 0 };
+    const q = (t - sk.s) / sk.d;
+    if (name === 'shaker') {
+      if (q >= 1) return { show: false, dx: 0, dy: 0, rot: 0, cap: 0 };
+      const pose = easeIO(clamp(q / 0.14)) * (1 - easeIO(clamp((q - 0.7) / 0.12)));
+      const out = easeIn(clamp((q - 0.78) / 0.22)) * 190; // the shaker slides off to the right while the glass slides in
+      return { show: true, dx: Math.sin(t * 38) * 5 * pose + out, dy: -34 * pose, rot: Math.sin(t * 38 + 1) * 0.09 * pose, cap: q > 0 ? easeOut(clamp(q / 0.1)) : 0 };
+    }
+    const g = clamp((q - 0.72) / 0.28);
+    return { show: q >= 0.72, dx: -(1 - easeOut(g)) * 190, dy: 0, rot: 0, cap: 0 };
+  }
+
   private draw() {
     const { ctx, canvas } = this;
     const sx = canvas.width / CANVAS_W;
@@ -366,10 +417,26 @@ export class PourPlayer {
     ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
     ctx.save(); ctx.translate(OX, OY);
     const t = this.t;
+    for (const name of Object.keys(this.ctrs)) {
+      const pose = this.ctrPose(name, t); if (!pose.show) continue;
+      this.useCtr(name);
+      ctx.save();
+      ctx.translate(pose.dx + 120, pose.dy + this.shape.bottom); ctx.rotate(pose.rot); ctx.translate(-120, -this.shape.bottom);
+      this.drawScene(t, pose.cap);
+      ctx.restore();
+    }
+    this.useCtr('glass');
+    this.drawVessels(this.surf(t, this.layersAt(t)), t);
+    ctx.restore();
+    if (!this.steps.length) { ctx.fillStyle = this.colors.quiet; ctx.font = '700 13px "DM Sans", system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('Tap an ingredient', OX + 120, OY + 190); }
+  }
+
+  private drawScene(t: number, cap: number) {
+    const { ctx } = this;
     const layers = this.layersAt(t);
     const top = this.surf(t, layers);
     const has = layers.length > 0;
-    const sh = this.shape;
+    const sh = this.shape, isGlass = this.active === 'glass';
 
     // contact shadow
     ctx.fillStyle = 'rgba(0,0,0,.16)'; ctx.beginPath(); ctx.ellipse(120, sh.bottom + 12, 86, 8, 0, 0, 7); ctx.fill();
@@ -380,25 +447,30 @@ export class PourPlayer {
     if (has) this.drawLiquid(layers, top, t);
     if (this.cold) this.drawCubes(top, t);
     this.drawParticles(top, t, layers, 'in');
-    if (has && this.cold) this.drawBeads(top, t);
+    if (has && this.cold && isGlass) this.drawBeads(top, t);
     ctx.restore();
 
-    // utensils inside the glass (stir spoon, muddler)
+    // utensils inside the container (stir spoon, muddler)
     this.drawInGlassTools(top, t);
     this.drawStreams(top, t);
-    this.drawSurfaceExtras(top, t, layers);
+    if (isGlass) this.drawSurfaceExtras(top, t, layers);
 
-    // glass outline + shine
+    // outline + shine
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     ctx.strokeStyle = this.colors.ink; ctx.globalAlpha = 0.72; ctx.lineWidth = 3.5; ctx.stroke(this.path); if (this.extra) ctx.stroke(this.extra); ctx.globalAlpha = 1;
     const g = ctx.createLinearGradient(40, 0, 200, 0); g.addColorStop(0, 'rgba(255,255,255,.5)'); g.addColorStop(0.25, 'rgba(255,255,255,0)'); g.addColorStop(0.8, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(255,255,255,.18)');
     ctx.fillStyle = g; ctx.fill(this.path);
 
     this.drawParticles(top, t, layers, 'out');
-    this.drawGarnish(t);
-    this.drawVessels(top, t);
-    ctx.restore();
-    if (!this.steps.length) { ctx.fillStyle = this.colors.quiet; ctx.font = '700 13px "DM Sans", system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('Tap an ingredient', OX + 120, OY + 190); }
+    if (isGlass) this.drawGarnish(t);
+    if (!isGlass && cap > 0.01) { // the metal cap drops on before shaking
+      const y = this.rimY - 22 * (1 - cap) * 3;
+      ctx.save(); ctx.globalAlpha = Math.min(1, cap * 2);
+      const gr = ctx.createLinearGradient(70, 0, 170, 0); gr.addColorStop(0, '#dfe3e6'); gr.addColorStop(0.5, '#fafbfc'); gr.addColorStop(1, '#a9afb4');
+      ctx.fillStyle = gr; ctx.strokeStyle = this.colors.ink; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(72, y + 8); ctx.lineTo(168, y + 8); ctx.lineTo(160, y - 34); ctx.lineTo(80, y - 34); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#c3c8cc'; ctx.beginPath(); (ctx as any).roundRect(98, y - 44, 44, 12, 4); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
   }
 
   private yAt(layers: Layer[], i: number, x: number, t: number, top: number): number {
@@ -513,6 +585,7 @@ export class PourPlayer {
   private drawParticles(top: number, t: number, layers: Layer[], pass: 'in' | 'out') {
     const { ctx } = this;
     for (const p of this.ps) {
+      if (p.ct !== this.active) continue;
       const inside = p.y > this.rimY - 2;
       if (pass === 'in' && !(p.k === 'bubble' || p.k === 'bit' || p.k === 'rest' || p.k === 'solid' || p.k === 'drop' || p.k === 'speck')) continue;
       if (pass === 'out' && !(p.k === 'steam' || p.k === 'dust')) continue;
@@ -532,6 +605,7 @@ export class PourPlayer {
   private drawInGlassTools(top: number, t: number) {
     const { ctx } = this;
     this.steps.forEach((st, j) => {
+      if (!this.mine(st)) return;
       const u = (t - this.starts[j]) / st.dur; if (u < 0 || u > 1) return;
       const pose = easeIO(clamp(u / 0.15)) * (1 - easeIO(clamp((u - 0.88) / 0.12)));
       if (st.kind === 'muddle') {
@@ -557,7 +631,7 @@ export class PourPlayer {
   }
 
   private drawStreams(top: number, t: number) {
-    const v = this.vesselAt(t); if (!v) return;
+    const v = this.vesselAt(t); if (!v || v.into !== this.active) return;
     const { ctx } = this;
     const sp = this.spout(v);
     const col = v.color;
@@ -612,7 +686,7 @@ export class PourPlayer {
 
   private spout(v: Vessel) {
     // spout position in glass space (the vessel origin) with a small lip offset for each shape
-    const lip: Record<string, number[]> = { jug: [-6, 1], bottle: [0, -2], shot: [-3, 0], tin: [-5, 3], jar: [0, 0] };
+    const lip: Record<string, number[]> = { jug: [-6, 1], bottle: [0, -2], shot: [-3, 0], tin: [-3, 3], jar: [0, 0] };
     const [lx, ly] = lip[v.kind] || [0, 0];
     return { x: v.x + Math.cos(v.angle) * lx - Math.sin(v.angle) * ly, y: v.y + Math.sin(v.angle) * lx + Math.cos(v.angle) * ly };
   }
@@ -620,18 +694,15 @@ export class PourPlayer {
   private drawVessels(top: number, t: number) {
     const { ctx } = this;
     const v = this.vesselAt(t);
-    if (v) { const home = Math.hypot(v.x - (this.cx + 30), v.y - (this.rimY - 34)); ctx.save(); ctx.globalAlpha = clamp(1.35 - home / 70); this.drawVessel(v); ctx.restore(); }
+    if (v) { const hc = this.ctrs[v.into] || this.ctrs.glass; const home = Math.hypot(v.x - (hc.cx + 30), v.y - (hc.rimY - 34)); ctx.save(); ctx.globalAlpha = clamp(1.35 - home / 70); this.drawVessel(v); ctx.restore(); }
     // stationary appliances
     this.steps.forEach((st, j) => {
       const u = (t - this.starts[j]) / st.dur; if (u < 0 || u > 1) return;
       const pose = easeIO(clamp(u / 0.16)) * (1 - easeIO(clamp((u - 0.86) / 0.14)));
-      if (st.kind === 'shake') {
-        const sh = Math.sin(t * 38) * 7 * pose, sv = Math.cos(t * 38) * 5 * pose;
-        ctx.save(); ctx.translate(this.cx + 14 + (1 - pose) * 140 + sh, this.rimY - 70 + sv - (1 - pose) * 40); ctx.rotate(-0.5 + Math.sin(t * 38) * 0.08);
-        this.tin(0, 0);
-        ctx.restore();
+      if (st.kind === 'shake') { // motion lines beside the shaking container
+        const sc = this.ctrs.shaker || this.ctrs.glass, sh = Math.sin(t * 38) * 7 * pose;
         ctx.save(); ctx.strokeStyle = this.colors.quiet; ctx.globalAlpha = 0.6 * pose; ctx.lineWidth = 2; ctx.lineCap = 'round';
-        for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(this.cx - 38, this.rimY - 70 + k * 14); ctx.lineTo(this.cx - 54 - Math.abs(sh), this.rimY - 70 + k * 14); ctx.stroke(); }
+        for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(sc.cx - 62, sc.rimY - 12 + k * 18); ctx.lineTo(sc.cx - 80 - Math.abs(sh), sc.rimY - 12 + k * 18); ctx.stroke(); ctx.beginPath(); ctx.moveTo(sc.cx + 62, sc.rimY - 12 + k * 18); ctx.lineTo(sc.cx + 80 + Math.abs(sh), sc.rimY - 12 + k * 18); ctx.stroke(); }
         ctx.restore();
       }
       if (st.kind === 'blend') {
@@ -738,7 +809,7 @@ export class PourPlayer {
       ctx.beginPath(); ctx.moveTo(-2, 0); ctx.lineTo(26, 0); ctx.lineTo(23, 32); ctx.quadraticCurveTo(22, 36, 18, 36); ctx.lineTo(6, 36); ctx.quadraticCurveTo(2, 36, 1, 32); ctx.closePath();
       ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fill(); liquid(28, 36, -2, 0); ctx.stroke();
     } else if (v.kind === 'tin' || v.kind === 'jar') {
-      if (v.kind === 'tin') this.tin(0, 0, true); else { ctx.save(); this.jarBody(32, 2, v.color, v.fill, this.t, false); ctx.restore(); }
+      if (v.kind === 'tin') { ctx.save(); ctx.scale(0.66, 0.66); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(84, 0); ctx.lineTo(76, 150); ctx.quadraticCurveTo(42, 159, 8, 150); ctx.closePath(); ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fill(); liquid(84, 156, 0, 0); ctx.stroke(); const gr = ctx.createLinearGradient(0, 0, 90, 0); gr.addColorStop(0, '#dfe3e6'); gr.addColorStop(0.5, '#fafbfc'); gr.addColorStop(1, '#a9afb4'); ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(-4, 4); ctx.lineTo(88, 4); ctx.lineTo(80, -30); ctx.lineTo(4, -30); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#888'; for (let k = 0; k < 5; k++) { ctx.beginPath(); ctx.arc(8 + k * 4, 0, 1, 0, 7); ctx.fill(); } ctx.restore(); } else { ctx.save(); this.jarBody(32, 2, v.color, v.fill, this.t, false); ctx.restore(); }
     }
     ctx.restore();
   }

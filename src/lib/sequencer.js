@@ -63,7 +63,7 @@ function buildSequence(o) {
   const text = (o.stepsText || '').toLowerCase();
   const layered = o.build === 'layered' || /\b(float|layer(ed|ing)?|over the back of|over a spoon)\b/.test(text);
   const blended = temp === 'blended' || o.build === 'blended';
-  const shaken = o.build === 'shaken';
+  const shaken = o.build === 'shaken' || (/\b(shake|shaking|shaker)\b/.test(text) && !blended && !layered);
   const cold = COLD(temp);
 
   // ---- classify ----
@@ -89,7 +89,8 @@ function buildSequence(o) {
     const nm = h.ing.name.toLowerCase().split(/[ /(]/)[0];
     const muddleCue = /muddl|crush|bruise|smash|press|clap|grind|tear/.test(text) || o.build === 'muddled';
     const garnishCue = garnishText.includes(nm) || (h.unit === 'pcs' && h.ml <= 20 && /wheel|slice|wedge|sprig/.test(garnishText));
-    if (garnishCue && !muddleCue) garnishes.push(h); else if (muddleCue || h.role === 'herb' && h.ml >= 2) muddlers.push(h); else garnishes.push(h);
+    const bulk = h.ml >= 40 || (blended && h.ml >= 10); // a real quantity of fruit is an ingredient, not a garnish
+    if (bulk) muddlers.push(h); else if (garnishCue && !muddleCue) garnishes.push(h); else if (muddleCue || h.role === 'herb' && h.ml >= 2) muddlers.push(h); else garnishes.push(h);
   }
   const rim = /rim/.test(text) && rows.find(r => ['black_salt', 'chili', 'chaat_masala'].includes(r.id));
 
@@ -175,20 +176,31 @@ function buildSequence(o) {
     push({ kind: 'pour', ids: all.map(r => r.id), ml: Math.min(total, 280), color: mixedColor(all.map(r => ({ ml: r.ml, color: r.color, opacity: r.opacity }))), flow: 'thick', label: 'Pour the blend into the glass', dur: 1.6, blendedPour: true });
   } else {
     if (muddlers.length) {
-      push({ kind: 'muddle', ids: muddlers.map(r => r.id), label: `Muddle ${muddlers.map(r => nice(r.ing)).slice(0, 2).join(' and ')} gently`, dur: 1.4, color: muddlers[0].color });
+      push({ kind: 'muddle', into: shaken ? 'shaker' : undefined, ids: muddlers.map(r => r.id), label: `Muddle ${muddlers.map(r => nice(r.ing)).slice(0, 2).join(' and ')} gently`, dur: 1.4, color: muddlers[0].color });
     }
     let shakerPhase = shaken ? order.filter(r => r.role !== 'fizz') : [];
     if (shaken && shakerPhase.length) {
+      // 1. everything goes into the shaker, 2. ice, 3. shake, 4. (ice in the glass only if it is served over ice), 5. strain
       const mix = shakerPhase.map(r => ({ ml: r.ml, color: r.color, opacity: r.opacity }));
-      push({ kind: 'shake', ids: shakerPhase.map(r => r.id), color: mixedColor(mix), label: 'Shake hard with ice', dur: 1.5 });
+      for (const r of shakerPhase) {
+        if (r.slurry) push({ kind: 'whisk', ids: r.ids || [r.id], color: r.color, label: r.whiskLabel || `Whisk ${nice(r.ing)} until smooth`, dur: 1.0 });
+        const f = FLOW[r.role] || FLOW.juice;
+        const nm = r.names ? (r.slurry ? nice(r.ing) : r.names.map(n => n.toLowerCase().replace(/ \(.*\)/, '').replace(/ \/ .*$/, '')).join(' and ')) : nice(r.ing);
+        push({ kind: 'pour', into: 'shaker', ids: r.ids || [r.id], ml: r.ml, color: r.color, opacity: r.opacity, density: r.density, flow: f.type, dur: Math.max(0.7, Math.min(1.8, 0.45 + r.ml / f.rate)), label: `Pour ${r.slurry ? 'the whisked ' : ''}${nm} into the shaker`, sinks: false });
+      }
+      if (cold) push({ kind: 'ice', into: 'shaker', ids: [], label: 'Fill the shaker with ice', dur: 1.2, cubes: 4 });
+      push({ kind: 'shake', into: 'shaker', ids: shakerPhase.map(r => r.id), color: mixedColor(mix), label: 'Cap it and shake hard until the shaker is frosty', dur: 1.7 });
       const total = shakerPhase.reduce((s, r) => s + r.ml, 0);
-      if (cold) push({ kind: 'ice', ids: [], label: 'Fill the glass with ice', dur: 1.2, cubes: 4 });
-      push({ kind: 'pour', ids: shakerPhase.map(r => r.id), ml: total, color: mixedColor(mix), flow: 'normal', label: 'Strain into the glass', dur: 1.5, strained: true });
+      const stemmed = /martini|coupe|flute|wine|cocktail|champagne|nick|saucer/i.test(o.glass || '');
+      const straightUp = /straight up|no ice|without ice|neat|chilled (martini|coupe|glass)|strain(ed)? into (a |the )?(chilled|cold|frozen)/.test(text);
+      const glassIce = cold && !stemmed && !straightUp;
+      if (glassIce) push({ kind: 'ice', ids: [], label: 'Fill the glass with fresh ice', dur: 1.2, cubes: 4 });
+      push({ kind: 'pour', ids: shakerPhase.map(r => r.id), ml: total, color: mixedColor(mix), opacity: 0.85, flow: 'normal', label: glassIce ? 'Strain into the glass over the ice' : `Strain into the chilled ${stemmed ? (o.glass || 'glass').toLowerCase() : 'glass'}, no ice`, dur: 1.5, strained: true });
       poured.push(...shakerPhase.map(r => ({ ml: r.ml, color: r.color, opacity: r.opacity })));
       order = order.filter(r => !shakerPhase.includes(r));
-      var iceDone = cold;
+      var iceDone = true;
     }
-    let iceDone2 = !!iceDone, stirred = false;
+    let iceDone2 = !!iceDone, stirred = shaken;
     const needIce = cold && !blended;
     const addIce = () => { if (needIce && !iceDone2) { push({ kind: 'ice', ids: [], label: 'Add ice (it cushions the pour)', dur: 1.2, cubes: 4 }); iceDone2 = true; } };
     const lastBeforeIce = order.reduce((acc, r, k) => (r.role === 'fizz' || r.float ? acc : k), -1);
@@ -213,7 +225,7 @@ function buildSequence(o) {
     });
     addIce();
     if (!layered && !stirred && poured.length > 1 && !order.some(r => r.role === 'fizz')) push({ kind: 'stir', ids: [], color: colorSoFar(), label: 'Stir gently', dur: 1.2 });
-    if (!layered && order.some(r => r.role === 'fizz') && poured.length > 1) push({ kind: 'stir', ids: [], color: colorSoFar(), label: 'One gentle stir, no more', dur: 0.8, gentle: true });
+    if (!layered && order.some(r => r.role === 'fizz') && poured.length > 1 && !shaken) push({ kind: 'stir', ids: [], color: colorSoFar(), label: 'One gentle stir, no more', dur: 0.8, gentle: true });
   }
   if (solids.length && !blended) push({ kind: 'drop', ids: solids.map(r => r.id), color: solids[0].color, label: `Add ${solids.map(r => nice(r.ing)).slice(0, 2).join(' and ')}`, dur: 1.0 });
   for (const sc of (blended ? [] : scoops)) push({ kind: sc.role === 'scoop' ? 'scoop' : 'top', ids: [sc.id], color: sc.color, ml: sc.ml, label: sc.role === 'scoop' ? 'Add a scoop of ice cream' : 'Crown with whipped cream', dur: 1.0 });
@@ -227,7 +239,7 @@ function buildSequence(o) {
   { const w = steps.filter(x => x.kind === 'whisk'); if (w.length) { const rest = steps.filter(x => x.kind !== 'whisk'); const k0 = rest.findIndex(x => x.kind !== 'rim'); steps.length = 0; steps.push(...rest.slice(0, Math.max(0, k0)), ...w, ...rest.slice(Math.max(0, k0))); steps.forEach((x, n) => { x.i = n; }); } }
   // ---- the liquid column (what is in the glass after each step) ----
   const finalLayers = (layered ? [...order] : []).sort((a, b) => b.density - a.density);
-  const totalMl = steps.filter(s => s.kind === 'pour' || s.kind === 'float' || s.kind === 'top').reduce((s, p) => s + (p.ml || 0), 0);
+  const totalMl = steps.filter(s => (s.kind === 'pour' || s.kind === 'float' || s.kind === 'top') && s.into !== 'shaker').reduce((s, p) => s + (p.ml || 0), 0);
   // compress long sequences so the whole build stays under ~11 s
   const sum = steps.reduce((s, x) => s + x.dur, 0);
   const k = sum > 11 ? 11 / sum : 1;

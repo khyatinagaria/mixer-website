@@ -18,7 +18,7 @@ type Props = { lab: Lab; view: View | null; live: LiveProps; units: 'ml' | 'spoo
 export default function Stage({ lab, view, live, units, setUnits, close, night }: Props) {
   const [tick] = useState(0);
   const seq = useMemo(() => view ? buildSequence({
-    items: view.ings.map(i => ({ id: i.id, ml: i.ml_equiv, unit: i.unit, amount: i.amount })), temp: view.temp, build: view.build, carbonated: view.carbonated,
+    glass: view.glass, items: view.ings.map(i => ({ id: i.id, ml: i.ml_equiv, unit: i.unit, amount: i.amount })), temp: view.temp, build: view.build, carbonated: view.carbonated,
     garnish: view.garnish, stepsText: view.steps.join(' '), ingById: lab.ingById, learned: lab.order,
   }) : null, [view, lab]);
   const liveKey = 'live-' + live.ids.join('+') + '-' + live.layers.length;
