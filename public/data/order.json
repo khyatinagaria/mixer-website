@@ -2,28 +2,28 @@
  "rolePos": {
   "acid": 0.296,
   "ice": 0.727,
-  "syrup": 0.414,
+  "syrup": 0.416,
   "juice": 0.269,
   "fizz": 0.862,
-  "solid": 0.303,
+  "solid": 0.3,
   "tea": 0.189,
   "fruit": 0.106,
   "herb": 0.162,
   "spice": 0.527,
   "water": 0.535,
-  "creamy": 0.497,
+  "creamy": 0.496,
   "scoop": 0.579,
   "coffee": 0.528,
-  "powder": 0.407,
+  "powder": 0.414,
   "hot": {
-   "syrup": 0.664,
+   "syrup": 0.668,
    "coffee": 0.681,
-   "creamy": 0.637,
+   "creamy": 0.63,
    "water": 0.405,
-   "solid": 0.356,
+   "solid": 0.343,
    "tea": 0.199,
    "spice": 0.412,
-   "powder": 0.214,
+   "powder": 0.271,
    "acid": 0.571
   },
   "cold": {
@@ -62,8 +62,8 @@
    "n": 8
   },
   "simple_syrup": {
-   "pos": 0.448,
-   "n": 112
+   "pos": 0.453,
+   "n": 113
   },
   "soda_water": {
    "pos": 0.873,
@@ -130,8 +130,8 @@
    "n": 10
   },
   "milk": {
-   "pos": 0.565,
-   "n": 127
+   "pos": 0.563,
+   "n": 128
   },
   "ice_cream": {
    "pos": 0.579,
@@ -158,8 +158,8 @@
    "n": 10
   },
   "nuts": {
-   "pos": 0.503,
-   "n": 25
+   "pos": 0.484,
+   "n": 26
   },
   "chocolate_syrup": {
    "pos": 0.37,
@@ -215,11 +215,11 @@
   }
  },
  "stats": {
-  "drinks_with_order_signal": 434,
+  "drinks_with_order_signal": 435,
   "of": 629,
-  "pairwise_accuracy_physics_only": 0.711,
-  "pairwise_accuracy_physics_plus_learned": 0.726,
-  "pairs_evaluated": 1663,
+  "pairwise_accuracy_physics_only": 0.714,
+  "pairwise_accuracy_physics_plus_learned": 0.727,
+  "pairs_evaluated": 1620,
   "cv": "5-fold, learned order trained on 4 folds and scored on the 5th"
  }
 }

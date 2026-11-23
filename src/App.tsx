@@ -15,7 +15,7 @@ function drinkView(d: Drink, lab: Lab, pantry: Set<string>): View {
   if (d.diet.caffeine_free) badges.push('Caffeine-free'); if (d.diet.low_sugar) badges.push('Low sugar'); if (d.diet.spicy) badges.push('Spicy');
   return {
     key: d.id, kicker: d.section_label, name: d.name, glass: d.glass, build: d.build, temp: d.temp, carbonated: d.carbonated, garnish: d.garnish,
-    ings: d.ingredients, layers: d.layers, color_hex: d.color_hex, steps: d.steps, flavor: d.flavor_vector, sugar: d.diet.sugar_g_est, extras: d.extras || [], badges,
+    ings: d.ingredients, layers: d.layers, color_hex: d.color_hex, steps: d.steps, flavor: d.flavor_vector, sugar: d.diet.sugar_g_est, verified: d.verified || '', verifiedNote: d.verified_note || '', extras: d.extras || [], badges,
     tags: [...d.season.slice(0, 2), ...d.vibe.slice(0, 3)],
     warnings: d.warnings.includes('acid_dairy') ? [{ msg: 'Acid and milk can curdle.', fix: 'Add the acid last and stir gently, or use oat milk.' }] : [],
     subs: subNotesFor(d, pantry, lab.ingById),

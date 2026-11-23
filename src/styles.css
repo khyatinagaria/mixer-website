@@ -158,3 +158,5 @@ h3 small.muted { text-transform: none; letter-spacing: 0; font-weight: 400; marg
 
 .jump { display: none; }
 @media (max-width: 899px) { .jump { display: block; position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 20; border: 0; border-radius: 99px; padding: 12px 22px; background: var(--accent); color: var(--on-accent); font: 800 0.95rem var(--sans); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3); } }
+
+.pour-list { margin-top: 6px; } .pour-list summary { cursor: pointer; font-weight: 700; font-size: 0.85rem; color: var(--quiet); padding: 6px 0; } .verified a { color: var(--accent); font-weight: 700; }

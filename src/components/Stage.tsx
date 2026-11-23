@@ -9,9 +9,10 @@ import { downloadCard } from '../lib/share';
 export type View = {
   key: string; kicker: string; name: string; glass: string; build: string; temp: string; carbonated: boolean; garnish: string;
   ings: { id: string; amount: number; unit: string; ml_equiv: number }[]; layers: any[]; color_hex: string; steps: string[]; flavor: number[];
-  sugar: number; extras: string[]; badges: string[]; tags: string[]; warnings: { msg: string; fix?: string }[]; subs: { needs: string; use: string; note: string }[];
+  sugar: number; verified?: string; verifiedNote?: string; extras: string[]; badges: string[]; tags: string[]; warnings: { msg: string; fix?: string }[]; subs: { needs: string; use: string; note: string }[];
 };
 
+const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
 type Props = { lab: Lab; view: View; units: 'ml' | 'spoons'; setUnits: (u: 'ml' | 'spoons') => void; close: () => void; night: boolean };
 
 export default function Stage({ lab, view, units, setUnits, close, night }: Props) {
@@ -42,10 +43,11 @@ export default function Stage({ lab, view, units, setUnits, close, night }: Prop
             {v.subs.length > 0 && <div className="subs"><h4>Your swaps</h4>{v.subs.map(s => <p key={s.needs}><b>{nm(s.use)}</b> for {nm(s.needs).toLowerCase()}. {s.note}</p>)}</div>}</div>
           <div><h3>Flavor profile</h3><Radar v={v.flavor} /></div>
         </div>
-        {seq.steps.length > 0 && <><h3>Step by step <small className="muted">every ingredient, with amounts</small></h3>
-          <ol className="steps gen">{seq.prep && <li>{seq.prep}</li>}{seq.steps.map((s: any, i: number) => <li key={i}>{s.detail || s.label}</li>)}</ol></>}
-        <h3>From the original recipe</h3>
+        <h3>How to make it</h3>
         <ol className="steps">{v.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
+        {v.verified && <p className="muted tiny verified">✓ Recipe checked against <a href={v.verified} target="_blank" rel="noreferrer">{hostOf(v.verified)}</a>{v.verifiedNote ? `. ${v.verifiedNote}` : ''}</p>}
+        {seq.steps.length > 0 && <details className="pour-list"><summary>Pour order shown in the animation</summary>
+          <ol className="steps gen">{seq.prep && <li>{seq.prep}</li>}{seq.steps.map((s: any, i: number) => <li key={i}>{s.detail || s.label}</li>)}</ol></details>}
         <dl className="meta"><div><dt>Glass</dt><dd>{v.glass}</dd></div><div><dt>Method</dt><dd>{v.build}</dd></div><div><dt>Serve</dt><dd>{v.temp === 'hot' ? 'Hot' : v.temp === 'blended' ? 'Blended' : v.temp === 'cold' ? 'Chilled' : 'Over ice'}</dd></div>{v.garnish && <div><dt>Garnish</dt><dd>{v.garnish}</dd></div>}</dl>
                 <div className="tags">{v.tags.map(t => <i key={t}>{label(t)}</i>)}</div>
         <div className="actions"><button className="btn" onClick={() => downloadCard({ name: v.name, section: v.kicker, color_hex: v.color_hex, layers: v.layers, lines, steps: v.steps, glass: v.glass, flavor: v.flavor }, night)}>Save share card (PNG)</button></div>

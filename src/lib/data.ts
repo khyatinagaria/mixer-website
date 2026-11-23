@@ -12,7 +12,7 @@ export type Drink = {
   core_ingredients: string[]; steps: string[]; garnish: string;
   season: string[]; mood: string[]; vibe: string[]; flavor_vector: number[]; color_hex: string;
   layers: { id: string; ml: number; color_hex: string; opacity: number; density: number }[];
-  volume_ml: number; carbonated: boolean; warnings: string[]; source: string;
+  volume_ml: number; carbonated: boolean; warnings: string[]; source: string; verified?: string; verified_note?: string;
   diet: { dairy_free: boolean; caffeine_free: boolean; vegan: boolean; nut_free: boolean; low_sugar: boolean; spicy: boolean; sugar_g_est: number };
   hand: boolean; sub: string; extras: string[];
 };
