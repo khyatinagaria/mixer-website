@@ -87,6 +87,7 @@ export default function App() {
             open={id => { setOpenId(id); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
         </div>
       </main>
+      {pantry.length > 0 && !view && <button className="jump" onClick={() => document.querySelector('.col-results')?.scrollIntoView({ behavior: 'smooth' })}>See {results.rows.length} drink{results.rows.length === 1 ? '' : 's'} ↓</button>}
       <footer className="foot">Zero-proof means no alcohol. Recipes are our own home versions, adapted from classic and popular non-alcoholic drinks.</footer>
     </div>
   );
