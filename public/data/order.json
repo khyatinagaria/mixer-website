@@ -219,7 +219,7 @@
   "of": 629,
   "pairwise_accuracy_physics_only": 0.711,
   "pairwise_accuracy_physics_plus_learned": 0.726,
-  "pairs_evaluated": 1660,
+  "pairs_evaluated": 1663,
   "cv": "5-fold, learned order trained on 4 folds and scored on the 5th"
  }
 }

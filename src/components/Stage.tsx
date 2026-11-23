@@ -42,9 +42,9 @@ export default function Stage({ lab, view, units, setUnits, close, night }: Prop
             {v.subs.length > 0 && <div className="subs"><h4>Your swaps</h4>{v.subs.map(s => <p key={s.needs}><b>{nm(s.use)}</b> for {nm(s.needs).toLowerCase()}. {s.note}</p>)}</div>}</div>
           <div><h3>Flavor profile</h3><Radar v={v.flavor} /></div>
         </div>
-        {seq.steps.length > 0 && <><h3>Pour order <small className="muted">worked out from the ingredients</small></h3>
-          <ol className="steps gen">{seq.steps.map((s: any, i: number) => <li key={i}>{s.label}</li>)}</ol></>}
-        <h3>Recipe method</h3>
+        {seq.steps.length > 0 && <><h3>Step by step <small className="muted">every ingredient, with amounts</small></h3>
+          <ol className="steps gen">{seq.prep && <li>{seq.prep}</li>}{seq.steps.map((s: any, i: number) => <li key={i}>{s.detail || s.label}</li>)}</ol></>}
+        <h3>From the original recipe</h3>
         <ol className="steps">{v.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
         <dl className="meta"><div><dt>Glass</dt><dd>{v.glass}</dd></div><div><dt>Method</dt><dd>{v.build}</dd></div><div><dt>Serve</dt><dd>{v.temp === 'hot' ? 'Hot' : v.temp === 'blended' ? 'Blended' : v.temp === 'cold' ? 'Chilled' : 'Over ice'}</dd></div>{v.garnish && <div><dt>Garnish</dt><dd>{v.garnish}</dd></div>}</dl>
                 <div className="tags">{v.tags.map(t => <i key={t}>{label(t)}</i>)}</div>

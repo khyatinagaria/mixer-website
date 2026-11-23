@@ -42,6 +42,23 @@ const FLOW = {
 
 const nice = ing => ing.name.toLowerCase().replace(/ \(.*\)/, '').replace(/ \/ .*$/, '');
 
+// ---- full-sentence instructions (amounts, time, ice, serve), shown in the step list; `label` stays short for the player caption ----
+const FR = { 0.25: '¼', 0.33: '⅓', 0.5: '½', 0.67: '⅔', 0.75: '¾' };
+const num = n => { const w = Math.floor(n + 1e-6), r = Math.round((n - w) * 100) / 100; const f = r ? (FR[r] || '') : ''; return (w ? String(w) : '') + f || String(Math.round(n * 10) / 10); };
+/** "60 ml apple juice", "6 mint leaves", "a pinch of cumin" */
+const item = r => {
+  const a = r.amount, u = r.unit, nm = nice(r.ing);
+  if (r.id === 'ice_cream' && u === 'pcs') return `${num(a || 1)} ${a > 1 ? 'scoops' : 'scoop'} of ${nm}`;
+  if (u === 'pcs') return `${num(a || 1)} ${a === 1 || !a ? 'piece' : 'pieces'} of ${nm}`;
+  if (u === 'leaves') return `${num(a || 1)} ${/leaves|leaf/.test(nm) ? nm : nm + ' leaves'}`;
+  if (u === 'pinch') return `${a > 1 ? a + ' pinches' : 'a pinch'} of ${nm}`;
+  if (u === 'dash') return `${a > 1 ? a + ' dashes' : 'a dash'} of ${nm}`;
+  if (u === 'tsp' || u === 'tbsp' || u === 'cup') return `${num(a || 1)} ${u} ${nm}`;
+  if (u === 'g') return `${Math.round(r.ml)} g ${nm}`;
+  return `${Math.round(r.ml)} ml ${nm}`;
+};
+const joinList = a => (a.length <= 1 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]);
+
 function mixedColor(parts) {
   let r = 0, g = 0, b = 0, w = 0;
   for (const p of parts) {
@@ -72,7 +89,7 @@ function buildSequence(o) {
     const role = roleOf(i.id, ing, i);
     // hot espresso (and its crema) sits on top of cold layers, so it counts as lighter than its recipe density
     const dens = ing.density - (layered && cold && i.id === 'espresso' ? 0.7 : 0);
-    return { id: i.id, ml: Math.max(0.5, i.ml), unit: i.unit, ing, role, color: ing.color_hex, opacity: ing.opacity, density: dens };
+    return { id: i.id, ml: Math.max(0.5, i.ml), unit: i.unit, amount: i.amount, ing, role, color: ing.color_hex, opacity: ing.opacity, density: dens };
   });
   const isLiquid = r => ['syrup', 'acid', 'water', 'juice', 'tea', 'creamy', 'coffee', 'fizz'].includes(r.role) || (r.role === 'solid' && r.ml >= 25 && r.unit !== 'pcs' && r.unit !== 'leaves');
   const liquids = rows.filter(r => isLiquid(r) && r.ml >= 4);
@@ -92,6 +109,9 @@ function buildSequence(o) {
     const bulk = h.ml >= 40 || (blended && h.ml >= 10); // a real quantity of fruit is an ingredient, not a garnish
     if (bulk) muddlers.push(h); else if (garnishCue && !muddleCue) garnishes.push(h); else if (muddleCue || h.role === 'herb' && h.ml >= 2) muddlers.push(h); else garnishes.push(h);
   }
+  // hot drinks that are steeped or simmered: herbs, ginger and spices infuse in a pan first instead of being muddled or dusted on top
+  const infuse = temp === 'hot' && (o.build === 'steeped' || /steep|simmer|boil|infus|decoction/.test(text));
+  if (infuse) muddlers.splice(0, muddlers.length);
   const rim = /rim/.test(text) && rows.find(r => ['black_salt', 'chili', 'chaat_masala'].includes(r.id));
 
   // ---- order the liquids ----
@@ -229,14 +249,78 @@ function buildSequence(o) {
   }
   if (solids.length && !blended) push({ kind: 'drop', ids: solids.map(r => r.id), color: solids[0].color, label: `Add ${solids.map(r => nice(r.ing)).slice(0, 2).join(' and ')}`, dur: 1.0 });
   for (const sc of (blended ? [] : scoops)) push({ kind: sc.role === 'scoop' ? 'scoop' : 'top', ids: [sc.id], color: sc.color, ml: sc.ml, label: sc.role === 'scoop' ? 'Add a scoop of ice cream' : 'Crown with whipped cream', dur: 1.0 });
-  const seasoned = seasoning.filter(s => s.role === 'spice').slice(0, 3);
-  if (seasoned.length && !blended) push({ kind: 'dust', ids: seasoned.map(r => r.id), color: seasoned[0].color, label: `Dust with ${seasoned.map(r => nice(r.ing)).slice(0, 2).join(' and ')}`, dur: 0.8 });
+  const seasoned = infuse ? [] : seasoning.filter(s => s.role === 'spice').slice(0, 3);
+  if (seasoned.length && !blended) {
+    // spices the recipe adds before it pours (e.g. "add spices and lemon into the glass") go in first
+    const firstPourAt = text.search(/\b(pour|top|strain)\b/);
+    const early = /^[^.]*\bspices?\b/.test(text) || (firstPourAt > 0 && seasoned.some(r => { const k = text.indexOf(nice(r.ing).split(' ')[0]); return k >= 0 && k < firstPourAt; }));
+    push({ kind: 'dust', early, ids: seasoned.map(r => r.id), color: seasoned[0].color, label: early ? `Add ${seasoned.map(r => nice(r.ing)).slice(0, 2).join(' and ')} first` : `Dust with ${seasoned.map(r => nice(r.ing)).slice(0, 2).join(' and ')}`, dur: 0.8 });
+  }
   const gar = [...garnishes, ...seasoning.filter(s => s.role === 'garnish')];
   if (gar.length || o.garnish) push({ kind: 'garnish', ids: gar.map(r => r.id), label: o.garnish ? `Garnish: ${o.garnish}` : `Garnish with ${gar.map(r => nice(r.ing)).slice(0, 2).join(' and ')}`, dur: 0.9 });
   if (temp === 'hot') push({ kind: 'steam', ids: [], label: 'Serve hot', dur: 0.8 });
 
+  { const e = steps.findIndex(x => x.kind === 'dust' && x.early); if (e > 0) { const [d] = steps.splice(e, 1); const k0 = steps.findIndex(x => x.kind !== 'rim'); steps.splice(Math.max(0, k0), 0, d); steps.forEach((x, n) => { x.i = n; }); } }
   // prep (whisking a slurry) happens before any pouring
   { const w = steps.filter(x => x.kind === 'whisk'); if (w.length) { const rest = steps.filter(x => x.kind !== 'whisk'); const k0 = rest.findIndex(x => x.kind !== 'rim'); steps.length = 0; steps.push(...rest.slice(0, Math.max(0, k0)), ...w, ...rest.slice(Math.max(0, k0))); steps.forEach((x, n) => { x.i = n; }); } }
+  // ---- complete, specific wording for every step ----
+  let prep = null;
+  {
+    const byId = Object.fromEntries(rows.map(r => [r.id, r]));
+    const glass = (o.glass || 'glass').toLowerCase(), g = /glass|mug|cup|jar|kulhad|tumbler|bowl|bottle/.test(glass) ? glass : glass + ' glass';
+    const withAmt = ids => joinList((ids || []).map(id => byId[id]).filter(Boolean).map(item));
+    const justNames = ids => joinList((ids || []).map(id => byId[id]).filter(Boolean).map(r => nice(r.ing)));
+    const iceInText = /\bice\b/.test(text);
+    const describe = st => {
+      const L = st.label;
+      switch (st.kind) {
+        case 'rim': return `${L}: wet the rim with a lime or lemon wedge, then dip it in a plate of ${justNames(st.ids) || 'it'}.`;
+        case 'blend': {
+          const verb = /churn/.test(text) && !/blend/.test(text) ? 'churn' : /puls/.test(text) && !/blend/.test(text) ? 'pulse' : 'blend';
+          const iceBit = iceInText && cold ? ' with a handful of ice (about ½ cup)' : '';
+          return verb === 'blend' ? `Add ${withAmt(st.ids)}${iceBit} to a blender and blend until smooth, about 30 seconds.`
+            : verb === 'churn' ? `Add ${withAmt(st.ids)} to a jug and churn with a wooden churner or whisk until light and frothy, about 1 minute.`
+              : `Add ${withAmt(st.ids)} to a blender and pulse in short bursts, about 10 seconds, keeping some texture.`;
+        }
+        case 'muddle': return `Muddle ${withAmt(st.ids)} gently in the ${st.into === 'shaker' ? 'shaker' : g}, pressing about 10 seconds to release the juice and aroma without shredding.`;
+        case 'whisk': return `Whisk ${joinList((st.ids || []).map(id => byId[id]).filter(r => r && ['powder', 'spice', 'accent'].includes(r.role) || r && r.ing.category === 'accent').map(r => nice(r.ing))) || justNames(st.ids) || 'the powder'} with a little warm ${temp === 'hot' ? 'milk' : 'water'} for about 20 seconds until there are no lumps.`;
+        case 'ice': return st.into === 'shaker' ? 'Fill the shaker with ice cubes (about 1 cup).' : `Add ice cubes to the ${g} until it is about three-quarters full.`;
+        case 'shake': return 'Cap the shaker and shake hard for 15 seconds, until the outside is frosty.';
+        case 'stir': return st.gentle ? 'Give it one slow stir from the bottom so the bubbles stay.' : `Stir with a long spoon for about 10 seconds until everything is mixed${temp === 'hot' ? '' : ' and chilled'}.`;
+        case 'float': return `Slowly float ${withAmt(st.ids)} over the back of a spoon so it rests on top.`;
+        case 'top': return byId[(st.ids || [])[0]] && byId[st.ids[0]].role === 'topping' ? 'Crown with whipped cream.' : `Top with ${withAmt(st.ids)}, pouring slowly down the side so the bubbles survive.`;
+        case 'scoop': return 'Add a scoop of ice cream on top.';
+        case 'drop': return `Add ${withAmt(st.ids)} to the ${g}.`;
+        case 'dust': return st.early ? `Add ${withAmt(st.ids)} to the empty ${g} first.` : `Dust the top with ${withAmt(st.ids)}.`;
+        case 'garnish': {
+          const extra = (st.ids || []).map(id => byId[id]).filter(r => r && !nice(r.ing).split(' ').some(w => w.length > 3 && L.toLowerCase().includes(w))).map(item);
+          return `${L.replace(/\.$/, '')}${extra.length ? ' with ' + joinList(extra) : ''}.${temp === 'hot' ? '' : ' Serve right away.'}`;
+        }
+        case 'steam': return 'Serve hot, right away.';
+        case 'pour':
+          if (st.blendedPour) return `Pour the blended drink into a ${g}.`;
+          if (st.strained) return /no ice/.test(L) ? `Strain through a cocktail strainer into the ${L.replace(/^Strain into the /, '').replace(/, no ice$/, '')}; leave the ice behind.` : 'Strain through a cocktail strainer into the glass over the ice.';
+          if (st.into === 'shaker') return `Pour ${withAmt(st.ids)} into the shaker.`;
+          return `Pour ${withAmt(st.ids)} into the ${g}${/sinks/.test(L) ? '; it settles at the bottom' : ''}.`;
+        default: return L;
+      }
+    };
+    const cap = d => d.charAt(0).toUpperCase() + d.slice(1);
+    // ingredients that no step touched (herbs, spices, ginger...) still get an instruction
+    const used = new Set(steps.flatMap(x => x.ids || []));
+    const missing = rows.filter(r => !used.has(r.id) && !['ice'].includes(r.role));
+    const bl = steps.find(x => x.kind === 'blend');
+    if (missing.length && blended && bl) missing.forEach(r => bl.ids.push(r.id));
+    for (const st of steps) st.detail = cap(describe(st));
+    if (missing.length && !(blended && bl)) {
+      const list = withAmt(missing.map(r => r.id));
+      const aromatic = missing.some(r => ['herb', 'fruit'].includes(r.role) || r.id === 'ginger');
+      prep = temp === 'hot'
+        ? `Simmer ${list} in a small pan with a little water for 3 to 5 minutes so the flavours infuse, then strain into the ${g}.`
+        : `First add ${list} to the ${shaken ? 'shaker' : g}${aromatic ? ', pressing any herbs or ginger lightly to release their flavour' : ''}.`;
+    }
+  }
+
   // ---- the liquid column (what is in the glass after each step) ----
   const finalLayers = (layered ? [...order] : []).sort((a, b) => b.density - a.density);
   const totalMl = steps.filter(s => (s.kind === 'pour' || s.kind === 'float' || s.kind === 'top') && s.into !== 'shaker').reduce((s, p) => s + (p.ml || 0), 0);
@@ -244,7 +328,7 @@ function buildSequence(o) {
   const sum = steps.reduce((s, x) => s + x.dur, 0);
   const k = sum > 11 ? 11 / sum : 1;
   steps.forEach(s => { s.dur = +(s.dur * k).toFixed(2); });
-  return { steps, layered, blended, shaken, mixes: !layered, totalMl: Math.round(totalMl), color: mixedColor(rows.filter(isLiquid).concat(powders).map(r => ({ ml: r.ml, color: r.color, opacity: r.opacity }))), roles: Object.fromEntries(rows.map(r => [r.id, r.role])), duration: +steps.reduce((s, x) => s + x.dur, 0).toFixed(2) };
+  return { steps, prep, layered, blended, shaken, mixes: !layered, totalMl: Math.round(totalMl), color: mixedColor(rows.filter(isLiquid).concat(powders).map(r => ({ ml: r.ml, color: r.color, opacity: r.opacity }))), roles: Object.fromEntries(rows.map(r => [r.id, r.role])), duration: +steps.reduce((s, x) => s + x.dur, 0).toFixed(2) };
 }
 
 export { buildSequence, roleOf, PRIOR_POS, mixedColor };
