@@ -88,7 +88,7 @@ export default function App() {
         </div>
       </main>
       {pantry.length > 0 && !view && <button className="jump" onClick={() => document.querySelector('.col-results')?.scrollIntoView({ behavior: 'smooth' })}>See {results.rows.length} drink{results.rows.length === 1 ? '' : 's'} ↓</button>}
-      <footer className="foot">Zero-proof means no alcohol. Recipes are our own home versions, adapted from classic and popular non-alcoholic drinks.</footer>
+      <footer className="foot">Zero-proof means no alcohol. Where a recipe shows "Recipe checked against", it follows that published page, scaled to one glass. Other recipes are our own home versions of classic drinks.</footer>
     </div>
   );
 }
