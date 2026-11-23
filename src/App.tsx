@@ -1,16 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { loadLab, type Lab, type Drink } from './lib/data';
-import { blendColor, indianSeason, isIndian, label, layersFrom, liveBuild, subNotesFor } from './lib/helpers';
-import { buildSequence } from './lib/sequencer.js';
+import { indianSeason, isIndian, label, passesDiet, subNotesFor } from './lib/helpers';
 import Pantry from './components/Pantry';
 import Filters, { type FilterState } from './components/Filters';
-import Results, { type Row } from './components/Results';
+import Results, { type Row, type Mode } from './components/Results';
 import Stage, { type View } from './components/Stage';
 
 const read = <T,>(k: string, d: T): T => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
 const write = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } };
-
-const DAIRY = ['milk', 'cream', 'evaporated_milk', 'ice_cream'];
 
 function drinkView(d: Drink, lab: Lab, pantry: Set<string>): View {
   const badges: string[] = [];
@@ -25,20 +22,6 @@ function drinkView(d: Drink, lab: Lab, pantry: Set<string>): View {
   };
 }
 
-function customView(lab: Lab, ids: string[]): View | null {
-  const r = lab.engine.customLab(ids);
-  const ings = r.recipe.map((x: any) => x.unit === 'pcs' ? { id: x.id, amount: x.amount || 1, unit: 'pcs', ml_equiv: x.ml } : { id: x.id, amount: x.ml, unit: 'ml', ml_equiv: x.ml });
-  const layers = layersFrom(r.recipe.map((x: any) => ({ id: x.id, ml: x.ml })), lab.ingById);
-  const top = (g: string, n: number) => (r.predicted_tags?.[g] || []).slice(0, n).map((t: any) => t.tag);
-  const fizz = ids.some(i => lab.ingById[i].category === 'fizz');
-  return {
-    key: 'custom-' + ids.join('+'), custom: true, kicker: 'Custom Lab · invented for you', name: r.name, glass: r.temp === 'blended' ? 'tall' : 'highball', build: r.temp === 'blended' ? 'blended' : liveBuild(ids, lab.ingById),
-    temp: r.temp, carbonated: fizz, garnish: '', ings, layers, color_hex: blendColor(layers), steps: r.steps.length ? r.steps : ['Stir everything over ice.'],
-    flavor: r.flavor_vector, sugar: r.sugar_g_est, extras: [], badges: ['Invented here'], tags: [...top('season', 1), ...top('mood', 2), ...top('vibe', 1)],
-    warnings: r.warnings.map((w: any) => ({ msg: w.msg, fix: w.fix })), subs: [], tastesLike: r.tastes_like.map((t: any) => t.name),
-  };
-}
-
 export default function App() {
   const [lab, setLab] = useState<Lab | null>(null);
   const [err, setErr] = useState('');
@@ -47,7 +30,6 @@ export default function App() {
   const [units, setUnits] = useState<'ml' | 'spoons'>(() => read('zpl-units', 'ml'));
   const [night, setNight] = useState<boolean>(() => read('zpl-night', false));
   const [openId, setOpenId] = useState<string | null>(() => { try { return new URLSearchParams(location.hash.slice(1)).get('drink'); } catch { return null; } });
-  const [custom, setCustom] = useState<View | null>(null);
 
   useEffect(() => { loadLab().then(setLab).catch(e => setErr(String(e))); }, []);
   useEffect(() => { try { history.replaceState(null, '', openId ? '#drink=' + openId : location.pathname + location.search); } catch { /* ignore */ } }, [openId]);
@@ -56,62 +38,53 @@ export default function App() {
   useEffect(() => { write('zpl-units', units); }, [units]);
   useEffect(() => { write('zpl-night', night); document.documentElement.dataset.theme = night ? 'night' : 'day'; }, [night]);
 
-  const rec = useMemo(() => {
+  const results = useMemo((): { mode: Mode; rows: Row[] } | null => {
     if (!lab) return null;
-    const out = lab.engine.recommend({ pantry, season: f.season, mood: f.mood, vibe: f.vibe, diet: f.diet, limit: 999 });
-    const boost = (r: Row) => r.score + (f.indianFirst && isIndian(r.drink) ? 0.08 : 0);
-    const sort = (rows: Row[]) => [...rows].sort((a, b) => boost(b) - boost(a));
-    return { makeNow: sort(out.makeNow) as Row[], oneAway: sort(out.oneAway) as Row[], forYou: sort(out.forYou) as Row[] };
-  }, [lab, pantry, f]);
-
-  const live = useMemo(() => {
-    if (!lab) return null;
-    const ids = pantry;
-    const r = ids.length ? lab.engine.customLab(ids) : null;
-    const layers = r ? layersFrom(r.recipe.map((x: any) => ({ id: x.id, ml: x.ml })), lab.ingById) : [];
-    const seq = r ? buildSequence({
-      items: r.recipe.map((x: any) => ({ id: x.id, ml: x.ml, unit: x.unit })), temp: r.temp, build: r.temp === 'blended' ? 'blended' : liveBuild(ids, lab.ingById),
-      carbonated: ids.some(i => lab.ingById[i].category === 'fizz'), garnish: '', stepsText: (r.steps || []).join(' '), ingById: lab.ingById, learned: lab.order,
-    }) : null;
-    return {
-      ids, layers, seq, flavor: r ? r.flavor_vector : [0, 0, 0, 0, 0], temp: r ? r.temp : 'iced',
-      carbonated: ids.some(i => lab.ingById[i].category === 'fizz'),
-      warnings: ids.length ? lab.engine.chemistry(ids) : [],
-      next: ids.length ? lab.engine.suggestNext(ids, { season: f.season, mood: f.mood, vibe: f.vibe, diet: f.diet, limit: 5 }) : [],
-    };
+    if (!pantry.length) {
+      const out = lab.engine.recommend({ pantry: [], season: f.season, mood: f.mood, vibe: f.vibe, diet: f.diet, limit: 999 });
+      const boost = (r: { drink: Drink; score: number }) => r.score + (f.indianFirst && isIndian(r.drink) ? 0.08 : 0);
+      const rows = [...out.forYou].sort((a: any, b: any) => boost(b) - boost(a)).map((r: any) => ({ drink: r.drink as Drink, hit: 0 }));
+      return { mode: 'browse', rows };
+    }
+    // Drinks from the database that use every selected ingredient (and possibly more), fewest ingredients first.
+    const tie = (a: Drink, b: Drink) => Number(!!f.season && b.season.includes(f.season)) - Number(!!f.season && a.season.includes(f.season))
+      || (f.indianFirst ? Number(isIndian(b)) - Number(isIndian(a)) : 0) || a.name.localeCompare(b.name);
+    const scored = lab.drinks.filter(d => passesDiet(d, f.diet)).map(d => {
+      const ids = new Set(d.ingredients.map(i => i.id));
+      return { drink: d, hit: pantry.filter(p => ids.has(p)).length };
+    });
+    const exact = scored.filter(s => s.hit === pantry.length).sort((a, b) => a.drink.ingredients.length - b.drink.ingredients.length || tie(a.drink, b.drink));
+    if (exact.length) return { mode: 'exact', rows: exact };
+    const closest = scored.filter(s => s.hit > 0).sort((a, b) => b.hit - a.hit || a.drink.ingredients.length - b.drink.ingredients.length || tie(a.drink, b.drink)).slice(0, 24);
+    return { mode: 'closest', rows: closest };
   }, [lab, pantry, f]);
 
   const hints = useMemo(() => (lab && pantry.length ? lab.engine.pairsWith(pantry[pantry.length - 1], 8).map((p: any) => p.id) : []), [lab, pantry]);
 
   if (err) return <main className="center"><p>Could not load the drink data. {err}</p></main>;
-  if (!lab || !rec || !live) return <main className="center"><div className="loader" aria-label="Loading" /><p>Mixing the data…</p></main>;
+  if (!lab || !results) return <main className="center"><div className="loader" aria-label="Loading" /><p>Mixing the data…</p></main>;
 
-  const toggle = (id: string) => { setPantry(p => (p.includes(id) ? p.filter(x => x !== id) : [...p, id])); setCustom(null); };
-  const view: View | null = custom || (openId && lab.drinkById[openId] ? drinkView(lab.drinkById[openId], lab, new Set(pantry)) : null);
-  const swap = (code: string) => {
-    if (code === 'curdle') setPantry(p => [...new Set(p.map(x => (DAIRY.includes(x) ? 'oat_milk' : x)))]);
-  };
+  const toggle = (id: string) => setPantry(p => (p.includes(id) ? p.filter(x => x !== id) : [...p, id]));
+  const view: View | null = openId && lab.drinkById[openId] ? drinkView(lab.drinkById[openId], lab, new Set(pantry)) : null;
 
   return (
     <div className="app">
       <header className="top">
-        <div className="brand"><span className="brand-mark" aria-hidden>◐</span><div><h1>Zero-Proof Mixology Lab</h1><p>Tap what's in your kitchen. Watch the glass fill.</p></div></div>
+        <div className="brand"><span className="brand-mark" aria-hidden>◐</span><div><h1>Zero-Proof Mixology Lab</h1><p>Tell us what's in your kitchen. We'll find the drinks.</p></div></div>
         <button className="theme" onClick={() => setNight(n => !n)} aria-pressed={night} aria-label="Toggle day and night theme">{night ? '☀ Day' : '☾ Night'}</button>
       </header>
       <div className="hero"><span>{label(f.season || 'summer')} in India</span><h2>What's in your fridge?</h2><p>{lab.drinks.length} non-alcoholic drinks from chai and shikanji to cold brew tonics, matched to what you already have.</p></div>
-      <main className="layout">
+      <main className={'layout' + (view ? ' with-stage' : '')}>
         <div className="col-left">
-          <Pantry lab={lab} pantry={pantry} toggle={toggle} suggested={hints} clear={() => { setPantry([]); setCustom(null); setOpenId(null); }} />
+          <Pantry lab={lab} pantry={pantry} toggle={toggle} suggested={hints} clear={() => { setPantry([]); setOpenId(null); }} />
           <Filters tax={lab.tax} f={f} set={setF} />
         </div>
-        <div className="col-stage">
-          <Stage lab={lab} view={view} night={night} units={units} setUnits={setUnits}
-            close={() => { setOpenId(null); setCustom(null); }}
-            live={{ ...live, swap, add: toggle, invent: () => setCustom(customView(lab, pantry)) }} />
-        </div>
+        {view && <div className="col-stage">
+          <Stage lab={lab} view={view} night={night} units={units} setUnits={setUnits} close={() => setOpenId(null)} />
+        </div>}
         <div className="col-results">
-          <Results lab={lab} makeNow={rec.makeNow} oneAway={rec.oneAway} forYou={rec.forYou} pantryCount={pantry.length} activeId={openId || undefined}
-            open={id => { setCustom(null); setOpenId(id); window.scrollTo({ top: 0, behavior: 'smooth' }); }} addIngredient={id => { if (!pantry.includes(id)) toggle(id); }} />
+          <Results lab={lab} rows={results.rows} mode={results.mode} pantry={pantry} activeId={openId || undefined}
+            open={id => { setOpenId(id); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
         </div>
       </main>
       <footer className="foot">Zero-proof means no alcohol. Recipes are our own home versions, adapted from classic and popular non-alcoholic drinks.</footer>

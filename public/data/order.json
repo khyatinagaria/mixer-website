@@ -6,14 +6,14 @@
   "juice": 0.269,
   "fizz": 0.862,
   "solid": 0.303,
-  "tea": 0.192,
+  "tea": 0.189,
   "fruit": 0.106,
   "herb": 0.162,
   "spice": 0.527,
   "water": 0.535,
   "creamy": 0.497,
   "scoop": 0.579,
-  "coffee": 0.48,
+  "coffee": 0.528,
   "powder": 0.407,
   "hot": {
    "syrup": 0.664,
@@ -33,14 +33,14 @@
    "juice": 0.277,
    "fizz": 0.862,
    "solid": 0.285,
-   "tea": 0.189,
+   "tea": 0.184,
    "fruit": 0.089,
    "herb": 0.166,
    "spice": 0.574,
    "water": 0.613,
    "creamy": 0.453,
    "scoop": 0.579,
-   "coffee": 0.371,
+   "coffee": 0.426,
    "powder": 0.454
   }
  },
@@ -145,10 +145,6 @@
    "pos": 0.531,
    "n": 8
   },
-  "cold_brew": {
-   "pos": 0.389,
-   "n": 9
-  },
   "caramel_syrup": {
    "pos": 0.621,
    "n": 11
@@ -190,8 +186,8 @@
    "n": 29
   },
   "herbal_leaf": {
-   "pos": 0,
-   "n": 14
+   "pos": 0.028,
+   "n": 18
   },
   "ginseng": {
    "pos": 0,
@@ -221,7 +217,7 @@
  "stats": {
   "drinks_with_order_signal": 434,
   "of": 629,
-  "pairwise_accuracy_physics_only": 0.71,
+  "pairwise_accuracy_physics_only": 0.711,
   "pairwise_accuracy_physics_plus_learned": 0.726,
   "pairs_evaluated": 1660,
   "cv": "5-fold, learned order trained on 4 folds and scored on the 5th"

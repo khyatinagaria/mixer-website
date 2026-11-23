@@ -108,3 +108,8 @@ export function liveBuild(ids: string[], ingById: Record<string, Ingredient>): '
   if ((coffee && creamy) || (has('matcha') && creamy) || (heavy && clearBase) || (has('hibiscus_tea', 'black_tea', 'green_tea') && coffee)) return 'layered';
   return 'built';
 }
+
+/** Dietary filter used for pantry matches. Every chosen flag must hold. */
+export function passesDiet(d: Drink, diet: string[]): boolean {
+  return diet.every(f => ({ low_sugar: d.diet.low_sugar, caffeine_free: d.diet.caffeine_free, dairy_free: d.diet.dairy_free, vegan: d.diet.vegan, nut_free: d.diet.nut_free, no_spice: !d.diet.spicy } as Record<string, boolean>)[f] ?? true);
+}
