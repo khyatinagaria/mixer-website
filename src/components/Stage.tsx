@@ -51,7 +51,8 @@ export default function Stage({ lab, view, units, setUnits, close, night }: Prop
         </div>
         <h3>How to make it</h3>
         <ol className="steps">{v.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
-        {v.verified && <p className="muted tiny verified">✓ Recipe checked against <a href={v.verified} target="_blank" rel="noreferrer">{hostOf(v.verified)}</a>{v.verifiedNote ? `. ${v.verifiedNote}` : ''}</p>}
+        {v.verified === 'house' && <p className="muted tiny verified">✓ House recipe</p>}
+        {v.verified && v.verified !== 'house' && <p className="muted tiny verified">✓ Recipe checked against <a href={v.verified} target="_blank" rel="noreferrer">{hostOf(v.verified)}</a>{v.verifiedNote ? `. ${v.verifiedNote}` : ''}</p>}
         {seq.steps.length > 0 && <details className="pour-list"><summary>Every step shown in the animation</summary>
           <ol className="steps gen">{seq.prep && <li>{seq.prep}</li>}{seq.steps.map((s: any, i: number) => <li key={i}>{s.detail || s.label}</li>)}</ol></details>}
         <dl className="meta"><div><dt>Glass</dt><dd>{v.glass}</dd></div><div><dt>Method</dt><dd>{v.build}</dd></div><div><dt>Serve</dt><dd>{v.temp === 'hot' ? 'Hot' : v.temp === 'blended' ? 'Blended' : v.temp === 'cold' ? 'Chilled' : 'Over ice'}</dd></div>{v.garnish && <div><dt>Garnish</dt><dd>{v.garnish}</dd></div>}</dl>

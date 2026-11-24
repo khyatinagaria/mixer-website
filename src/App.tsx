@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import SearchBox from './components/SearchBox';
 import { loadLab, type Lab, type Drink } from './lib/data';
 import { indianSeason, isIndian, label, passesDiet, subNotesFor } from './lib/helpers';
 import Pantry from './components/Pantry';
@@ -71,6 +72,7 @@ export default function App() {
     <div className="app">
       <header className="top">
         <div className="brand"><span className="brand-mark" aria-hidden>◐</span><div><h1>Zero-Proof Mixology Lab</h1><p>Tell us what's in your kitchen. We'll find the drinks.</p></div></div>
+        <SearchBox drinks={lab.drinks} open={id => { setOpenId(id); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
         <button className="theme" onClick={() => setNight(n => !n)} aria-pressed={night} aria-label="Toggle day and night theme">{night ? '☀ Day' : '☾ Night'}</button>
       </header>
       <div className="hero"><span>{label(f.season || 'summer')} in India</span><h2>What's in your fridge?</h2><p>{lab.drinks.length} non-alcoholic drinks from chai and shikanji to cold brew tonics, matched to what you already have.</p></div>
@@ -88,7 +90,7 @@ export default function App() {
         </div>
       </main>
       {pantry.length > 0 && !view && <button className="jump" onClick={() => document.querySelector('.col-results')?.scrollIntoView({ behavior: 'smooth' })}>See {results.rows.length} drink{results.rows.length === 1 ? '' : 's'} ↓</button>}
-      <footer className="foot">Zero-proof means no alcohol. Where a recipe shows "Recipe checked against", it follows that published page, scaled to one glass. Other recipes are our own home versions of classic drinks.</footer>
+      <footer className="foot">Zero-proof means no alcohol. Where a recipe shows "Recipe checked against", it follows that published page, scaled to one glass. Recipes marked "House recipe" are our own.</footer>
     </div>
   );
 }

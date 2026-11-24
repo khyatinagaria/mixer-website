@@ -160,3 +160,16 @@ h3 small.muted { text-transform: none; letter-spacing: 0; font-weight: 400; marg
 @media (max-width: 899px) { .jump { display: block; position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 20; border: 0; border-radius: 99px; padding: 12px 22px; background: var(--accent); color: var(--on-accent); font: 800 0.95rem var(--sans); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3); } }
 
 .pour-list { margin-top: 6px; } .pour-list summary { cursor: pointer; font-weight: 700; font-size: 0.85rem; color: var(--quiet); padding: 6px 0; } .verified a { color: var(--accent); font-weight: 700; }
+
+/* drink name search */
+.namesearch { position: relative; flex: 1; max-width: 420px; margin-left: auto; }
+.namesearch input { width: 100%; box-sizing: border-box; padding: 9px 14px 9px 36px; border: 2px solid var(--ink); border-radius: 99px; background: var(--card); color: var(--ink); font: inherit; font-size: 0.95rem; }
+.namesearch input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.namesearch-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--quiet); pointer-events: none; }
+.namesearch-list { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 6px); margin: 0; padding: 6px; list-style: none; background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); max-height: 60vh; overflow: auto; }
+.namesearch-list li { padding: 8px 10px; border-radius: 10px; cursor: pointer; display: flex; flex-direction: column; }
+.namesearch-list li b { font-size: 0.95rem; }
+.namesearch-list li span { font-size: 0.78rem; color: var(--quiet); }
+.namesearch-list li.on { background: var(--bg2); }
+.namesearch-list li.none { cursor: default; color: var(--quiet); }
+@media (max-width: 640px) { .top { flex-wrap: wrap; } .namesearch { order: 3; flex-basis: 100%; max-width: none; } }
