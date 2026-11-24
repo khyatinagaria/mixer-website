@@ -9,6 +9,7 @@
 // (the stream detaches and the surface keeps rippling), squash and stretch (ice cubes, scoop), arcs (ballistic
 // stream, spoon circles), slow-in/slow-out (cubic easing), secondary action (ripples, splash, bubbles, steam).
 import { GLASS_ML, shapeFor, type GlassShape } from './helpers';
+import { drawKitchen, drawVessel, type KStep } from './kitchen';
 
 export const SHAPES: Record<GlassShape, { d: string; rim: number; bottom: number; extra: string }> = {
   tall: { d: 'M62 40 L178 40 L170 300 Q120 314 70 300 Z', rim: 40, bottom: 306, extra: '' },
@@ -24,6 +25,8 @@ export const SHAPES: Record<GlassShape, { d: string; rim: number; bottom: number
 export type SeqStep = {
   i: number; kind: string; ids: string[]; label: string; dur: number;
   into?: string; ml?: number; color?: string; opacity?: number; density?: number; flow?: string; cubes?: number; strained?: boolean; blendedPour?: boolean; gentle?: boolean;
+  /** kitchen steps (kind 'prep', into 'kitchen') carry their scene here, see kitchen.ts */
+  kit?: unknown; detail?: string;
 };
 export type Seq = { steps: SeqStep[]; layered: boolean; blended: boolean; shaken: boolean; totalMl: number; color: string; roles: Record<string, string>; duration: number };
 export type PlayerOpts = { glass: string; temp: string; carbonated: boolean; garnish: string; ingredientIds: string[]; ingredientNames?: Record<string, string> };
@@ -36,7 +39,7 @@ const GARNISHES: { re: RegExp; kind: 'wheel' | 'leaf' | 'cherry' | 'stick' | 'st
   { re: /green apple|apple|pear/i, kind: 'wheel', color: '#B9D96C' },
   { re: /pineapple|mango|peach|apricot|melon|kiwi/i, kind: 'wheel', color: '#F5C518' },
   { re: /cucumber/i, kind: 'wheel', color: '#9BCB6A' },
-  { re: /mint|basil|sage|coriander|rosemary|thyme|tulsi|curry leaf/i, kind: 'leaf', color: '#3FA34D' },
+  { re: /mint|basil|sage|coriander|rosemary|thyme|tulsi|curry leaf|tarragon|shiso|lemongrass/i, kind: 'leaf', color: '#3FA34D' },
   { re: /cherry|cranberr|pomegranate|strawberr|berry|berries/i, kind: 'cherry', color: '#C1121F' },
   { re: /cinnamon|candied ginger|stick/i, kind: 'stick', color: '#8B4513' },
   { re: /star anise/i, kind: 'star', color: '#5C3317' },
@@ -80,6 +83,8 @@ export class PourPlayer {
   private steps: SeqStep[] = [];
   private starts: number[] = [];
   private total = 0;
+  /** time when the kitchen part (preparing syrups, brews, blends...) ends and the glass part starts */
+  private kitchenEnd = 0;
   private seq!: Seq;
   private opts: PlayerOpts;
   private cap: number;
@@ -148,6 +153,8 @@ export class PourPlayer {
     this.starts = []; let s = 0;
     for (const st of this.steps) { this.starts.push(s); s += st.dur; }
     this.total = s;
+    this.kitchenEnd = 0;
+    for (let j = 0; j < this.steps.length && this.steps[j].kind === 'prep'; j++) this.kitchenEnd = this.starts[j] + this.steps[j].dur;
     const names = this.steps.some(x => x.into === 'shaker') ? ['shaker', 'glass'] : ['glass'];
     this.ctrs = {};
     for (const name of names) {
@@ -417,6 +424,7 @@ export class PourPlayer {
     ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
     ctx.save(); ctx.translate(OX, OY);
     const t = this.t;
+    if (this.kitchenEnd > 0 && t < this.kitchenEnd) { this.drawKitchenPart(t); ctx.restore(); return; }
     for (const name of Object.keys(this.ctrs)) {
       const pose = this.ctrPose(name, t); if (!pose.show) continue;
       this.useCtr(name);
@@ -429,6 +437,20 @@ export class PourPlayer {
     this.drawVessels(this.surf(t, this.layersAt(t)), t);
     ctx.restore();
     if (!this.steps.length) { ctx.fillStyle = this.colors.quiet; ctx.font = '700 13px "DM Sans", system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('Tap an ingredient', OX + 120, OY + 190); }
+  }
+
+  /** the recipe's preparation, then a hand-over where the kitchen vessel slides out and the glass slides in */
+  private drawKitchenPart(t: number) {
+    const { ctx } = this;
+    const j = Math.max(0, this.stepIndexAt(t)), st = this.steps[j] as KStep, u = clamp((t - this.starts[j]) / st.dur);
+    const prev = j > 0 ? (this.steps[j - 1] as KStep) : undefined;
+    if (st.kit.act !== 'serve') { drawKitchen(ctx, st, u, t, this.colors.ink, this.colors.glass, prev && prev.kind === 'prep' ? prev : undefined); return; }
+    const out = easeIO(clamp(u / 0.7)), inn = easeOut(clamp((u - 0.3) / 0.7));
+    ctx.save(); ctx.translate(-out * 280, 0); ctx.globalAlpha = 1 - out * 0.6;
+    drawVessel(ctx, st.kit.vessel, { ...st.kit.after, hot: 0 }, t, u, this.colors.ink, this.colors.glass, {});
+    ctx.restore();
+    this.useCtr('glass');
+    ctx.save(); ctx.translate((1 - inn) * 280, 0); ctx.globalAlpha = clamp(inn * 1.5); this.drawScene(t, 0); ctx.restore();
   }
 
   private drawScene(t: number, cap: number) {
