@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import PourGlass from './PourGlass';
 import { buildSequence } from '../lib/sequencer.js';
+import { withMethod } from '../lib/kitchen';
 import Radar from './Radar';
 import type { Lab } from '../lib/data';
 import { formatAmount, label, layersFrom } from '../lib/helpers';
@@ -17,10 +18,15 @@ type Props = { lab: Lab; view: View; units: 'ml' | 'spoons'; setUnits: (u: 'ml' 
 
 export default function Stage({ lab, view, units, setUnits, close, night }: Props) {
   const [tick] = useState(0);
-  const seq = useMemo(() => buildSequence({
-    glass: view.glass, items: view.ings.map(i => ({ id: i.id, ml: i.ml_equiv, unit: i.unit, amount: i.amount })), temp: view.temp, build: view.build, carbonated: view.carbonated,
-    garnish: view.garnish, stepsText: view.steps.join(' '), ingById: lab.ingById, learned: lab.order,
-  }), [view, lab]);
+  // the glass build from the sequencer, preceded by every preparation step of the recipe's own method
+  const seq = useMemo(() => {
+    const items = view.ings.map(i => ({ id: i.id, ml: i.ml_equiv, unit: i.unit, amount: i.amount }));
+    const glassOnly = buildSequence({
+      glass: view.glass, items, temp: view.temp, build: view.build, carbonated: view.carbonated,
+      garnish: view.garnish, stepsText: view.steps.join(' '), ingById: lab.ingById, learned: lab.order,
+    });
+    return withMethod(glassOnly, { steps: view.steps, ingById: lab.ingById, items, glass: view.glass, temp: view.temp });
+  }, [view, lab]);
   const nm = (id: string) => lab.ingById[id].name.replace(/ \(.*\)/, '');
 
   const v = view;
@@ -47,7 +53,7 @@ export default function Stage({ lab, view, units, setUnits, close, night }: Prop
         <ol className="steps">{v.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
         {v.verified === 'house' && <p className="muted tiny verified">✓ House recipe</p>}
         {v.verified && v.verified !== 'house' && <p className="muted tiny verified">✓ Recipe checked against <a href={v.verified} target="_blank" rel="noreferrer">{hostOf(v.verified)}</a>{v.verifiedNote ? `. ${v.verifiedNote}` : ''}</p>}
-        {seq.steps.length > 0 && <details className="pour-list"><summary>Pour order shown in the animation</summary>
+        {seq.steps.length > 0 && <details className="pour-list"><summary>Every step shown in the animation</summary>
           <ol className="steps gen">{seq.prep && <li>{seq.prep}</li>}{seq.steps.map((s: any, i: number) => <li key={i}>{s.detail || s.label}</li>)}</ol></details>}
         <dl className="meta"><div><dt>Glass</dt><dd>{v.glass}</dd></div><div><dt>Method</dt><dd>{v.build}</dd></div><div><dt>Serve</dt><dd>{v.temp === 'hot' ? 'Hot' : v.temp === 'blended' ? 'Blended' : v.temp === 'cold' ? 'Chilled' : 'Over ice'}</dd></div>{v.garnish && <div><dt>Garnish</dt><dd>{v.garnish}</dd></div>}</dl>
                 <div className="tags">{v.tags.map(t => <i key={t}>{label(t)}</i>)}</div>
