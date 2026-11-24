@@ -40,7 +40,8 @@ const FLOW = {
   acid: { type: 'thin', rate: 40 }, coffee: { type: 'thin', rate: 45 }, fizz: { type: 'fizz', rate: 45 }, powder: { type: 'thick', rate: 25 }, solid: { type: 'thick', rate: 30 },
 };
 
-const nice = ing => ing.name.toLowerCase().replace(/ \(.*\)/, '').replace(/ \/ .*$/, '');
+let HOT = false;
+const nice = ing => { const n = ing.name.toLowerCase().replace(/ \(.*\)/, '').replace(/ \/ .*$/, ''); return HOT && n === 'cold water' ? 'hot water' : n; };
 
 // ---- full-sentence instructions (amounts, time, ice, serve), shown in the step list; `label` stays short for the player caption ----
 const FR = { 0.25: '¼', 0.33: '⅓', 0.5: '½', 0.67: '⅔', 0.75: '¾' };
@@ -75,6 +76,7 @@ function mixedColor(parts) {
  * learned = model/order.json (optional): { rolePos:{role:0..1}, ingPos:{id:{pos,n}} }
  */
 function buildSequence(o) {
+  HOT = o.temp === 'hot';
   const { ingById, learned } = o;
   const temp = o.temp || 'iced';
   const text = (o.stepsText || '').toLowerCase();
