@@ -1,6 +1,11 @@
 import artBoxes from '../lib/artBoxes.json';
 
 import photoIds from '../lib/photos.json';
+import photoCredits from '../lib/photoCredits.json';
+
+export type PhotoCredit = { title: string; author: string; license: string; license_url: string; source: string; site: string };
+/** Free-licensed photos from the web (Creative Commons). Every other photo is our own. */
+export const CREDITS = photoCredits as Record<string, PhotoCredit>;
 
 /** Real cut-out photos, where we have one (add more with scripts/cut-photo.py). Every other drink uses its illustration. */
 const PHOTOS = new Set(photoIds as string[]);
@@ -9,7 +14,10 @@ const boxes = artBoxes as Record<string, number[]>;
 
 /** The drink on its own (no background), cropped tight so it can sit on a card. */
 export default function DrinkPic({ id, className }: { id: string; className?: string }) {
-  if (PHOTOS.has(id)) return <img className={className} src={`/photos/${id}.webp`} alt="" aria-hidden loading="lazy" decoding="async" />;
+  if (PHOTOS.has(id)) {
+    const c = CREDITS[id];
+    return <img className={className} src={`/photos/${id}.webp`} alt="" aria-hidden loading="lazy" decoding="async" title={c ? `Photo: ${c.author}, ${c.license} (cut out from the original)` : undefined} />;
+  }
   const b = boxes[id]; if (!b) return null;
   const pad = 4, [x, y, w, h] = [b[0] - pad, b[1] - pad, b[2] + pad * 2, b[3] + pad * 2];
   return (
