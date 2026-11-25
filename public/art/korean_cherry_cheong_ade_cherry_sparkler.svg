@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  
+  <g id="drink-artwork">
+
+    <defs>
+      <linearGradient id="d294_liq" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#c94d20" stop-opacity="0.86"/>
+        <stop offset="55%" stop-color="#a61b30" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#640b1a" stop-opacity="1.0"/>
+      </linearGradient>
+      <linearGradient id="d294_glass" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.55"/>
+        <stop offset="18%" stop-color="#FFFFFF" stop-opacity="0.12"/>
+        <stop offset="82%" stop-color="#DCE6EE" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.48"/>
+      </linearGradient>
+      <linearGradient id="d294_ceramic" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#F8F5F0"/>
+        <stop offset="30%" stop-color="#EFECE6"/>
+        <stop offset="85%" stop-color="#DCD6CC"/>
+        <stop offset="100%" stop-color="#C8C0B4"/>
+      </linearGradient>
+      <radialGradient id="d294_shadow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#000000" stop-opacity="0.15"/>
+        <stop offset="70%" stop-color="#000000" stop-opacity="0.05"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    
+<ellipse cx="200" cy="342" rx="63.2" ry="11" fill="url(#d294_shadow)"/>
+<g transform="rotate(-14 172 105)">
+<rect x="168" y="53" width="8" height="169" rx="3" fill="#F2EDE4" stroke="#B89F82" stroke-width="1"/>
+<line x1="168" y1="61" x2="176" y2="67" stroke="#C96A4B" stroke-width="2.5"/>
+<line x1="168" y1="75" x2="176" y2="81" stroke="#C96A4B" stroke-width="2.5"/>
+<line x1="168" y1="89" x2="176" y2="95" stroke="#C96A4B" stroke-width="2.5"/>
+<line x1="168" y1="103" x2="176" y2="109" stroke="#C96A4B" stroke-width="2.5"/>
+<line x1="168" y1="117" x2="176" y2="123" stroke="#C96A4B" stroke-width="2.5"/>
+</g>
+<clipPath id="d294_clip"><path d="M 146.0 107 L 254.0 107 L 246.0 326 Q 200 334 154.0 326 Z"/></clipPath>
+<g clip-path="url(#d294_clip)">
+<rect x="141.0" y="146.4" width="118" height="193.6" fill="url(#d294_liq)"/>
+<rect x="212.8" y="154.4" width="26" height="24" rx="5" transform="rotate(-1 225.8 166.4)" fill="#FFFFFF" fill-opacity="0.34" stroke="#FFFFFF" stroke-opacity="0.65" stroke-width="1.2"/>
+<rect x="185.8" y="180.4" width="26" height="24" rx="5" transform="rotate(18 198.8 192.4)" fill="#FFFFFF" fill-opacity="0.34" stroke="#FFFFFF" stroke-opacity="0.65" stroke-width="1.2"/>
+<rect x="158.8" y="206.4" width="26" height="24" rx="5" transform="rotate(-3 171.8 218.4)" fill="#FFFFFF" fill-opacity="0.34" stroke="#FFFFFF" stroke-opacity="0.65" stroke-width="1.2"/>
+<rect x="195.8" y="232.4" width="26" height="24" rx="5" transform="rotate(16 208.8 244.4)" fill="#FFFFFF" fill-opacity="0.34" stroke="#FFFFFF" stroke-opacity="0.65" stroke-width="1.2"/>
+<rect x="168.8" y="258.4" width="26" height="24" rx="5" transform="rotate(-5 181.8 270.4)" fill="#FFFFFF" fill-opacity="0.34" stroke="#FFFFFF" stroke-opacity="0.65" stroke-width="1.2"/>
+<circle cx="218.7" cy="217.4" r="1.6" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="167.7" cy="260.4" r="2.5" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="196.7" cy="303.4" r="3.4" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="225.7" cy="183.4" r="1.6" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="174.7" cy="226.4" r="2.5" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="203.7" cy="269.4" r="3.4" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="232.7" cy="312.4" r="1.6" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="181.7" cy="192.4" r="2.5" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="210.7" cy="235.4" r="3.4" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="159.7" cy="278.4" r="1.6" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="188.7" cy="158.4" r="2.5" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="217.7" cy="201.4" r="3.4" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="166.7" cy="244.4" r="1.6" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="195.7" cy="287.4" r="2.5" fill="#FFFFFF" fill-opacity="0.55"/>
+</g>
+<ellipse cx="200" cy="146.4" rx="52.5" ry="11" fill="#FFFDF9" fill-opacity="0.92" stroke="#FFFFFF" stroke-opacity="0.5" stroke-width="1"/>
+<path d="M 141.0 105 L 149.0 324 Q 200 338 251.0 324 L 259.0 105" fill="url(#d294_glass)" stroke="#9EB0BE" stroke-width="1.8"/>
+<path d="M 151.0 322 Q 200 334 249.0 322 L 251.0 328 Q 200 340 149.0 328 Z" fill="#DCE6EE" fill-opacity="0.65"/>
+<ellipse cx="200" cy="105" rx="59.0" ry="10" fill="none" stroke="#B6C6D4" stroke-width="1.8"/>
+<line x1="152.0" y1="119" x2="160.0" y2="314" stroke="#FFFFFF" stroke-opacity="0.58" stroke-width="4" stroke-linecap="round"/>
+<circle cx="190" cy="143.4" r="8" fill="#C62828" stroke="#8E0000" stroke-width="1.2"/>
+<circle cx="206" cy="145.4" r="7" fill="#AD1457" stroke="#78002E" stroke-width="1.2"/>
+  </g>
+</svg>

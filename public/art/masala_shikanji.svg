@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  
+  <g id="drink-artwork">
+
+    <defs>
+      <linearGradient id="d375_liq" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#d3f992" stop-opacity="0.86"/>
+        <stop offset="55%" stop-color="#f7f06c" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#cdc025" stop-opacity="1.0"/>
+      </linearGradient>
+      <linearGradient id="d375_glass" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.55"/>
+        <stop offset="18%" stop-color="#FFFFFF" stop-opacity="0.12"/>
+        <stop offset="82%" stop-color="#DCE6EE" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.48"/>
+      </linearGradient>
+      <linearGradient id="d375_ceramic" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#F8F5F0"/>
+        <stop offset="30%" stop-color="#EFECE6"/>
+        <stop offset="85%" stop-color="#DCD6CC"/>
+        <stop offset="100%" stop-color="#C8C0B4"/>
+      </linearGradient>
+      <radialGradient id="d375_shadow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#000000" stop-opacity="0.15"/>
+        <stop offset="70%" stop-color="#000000" stop-opacity="0.05"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    
+<ellipse cx="200" cy="337" rx="79.4" ry="11" fill="url(#d375_shadow)"/>
+<g transform="translate(264.2,145) rotate(22)">
+<circle cx="0" cy="0" r="28" fill="#82B74B" stroke="#5B8A2E" stroke-width="2"/>
+<circle cx="0" cy="0" r="23" fill="#F5F9EE"/>
+<circle cx="0" cy="0" r="20" fill="#B5DF76"/>
+<line x1="0" y1="0" x2="20.0" y2="0.0" stroke="#F5F9EE" stroke-width="1.8"/>
+<line x1="0" y1="0" x2="14.1" y2="14.1" stroke="#F5F9EE" stroke-width="1.8"/>
+<line x1="0" y1="0" x2="0.0" y2="20.0" stroke="#F5F9EE" stroke-width="1.8"/>
+<line x1="0" y1="0" x2="-14.1" y2="14.1" stroke="#F5F9EE" stroke-width="1.8"/>
+<line x1="0" y1="0" x2="-20.0" y2="0.0" stroke="#F5F9EE" stroke-width="1.8"/>
+<line x1="0" y1="0" x2="-14.1" y2="-14.1" stroke="#F5F9EE" stroke-width="1.8"/>
+<line x1="0" y1="0" x2="-0.0" y2="-20.0" stroke="#F5F9EE" stroke-width="1.8"/>
+<line x1="0" y1="0" x2="14.1" y2="-14.1" stroke="#F5F9EE" stroke-width="1.8"/>
+</g>
+<clipPath id="d375_clip"><path d="M 132.0 147 L 268.0 147 L 259.0 321 Q 200 329 141.0 321 Z"/></clipPath>
+<g clip-path="url(#d375_clip)">
+<rect x="127.0" y="178.1" width="146" height="156.9" fill="url(#d375_liq)"/>
+<circle cx="182.1" cy="285.1" r="1.6" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="211.1" cy="202.1" r="2.5" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="240.1" cy="245.1" r="3.4" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="170.1" cy="288.1" r="1.6" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="199.1" cy="205.1" r="2.5" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="228.1" cy="248.1" r="3.4" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="158.1" cy="291.1" r="1.6" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="187.1" cy="208.1" r="2.5" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="216.1" cy="251.1" r="3.4" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="245.1" cy="294.1" r="1.6" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="175.1" cy="211.1" r="2.5" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="204.1" cy="254.1" r="3.4" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="233.1" cy="297.1" r="1.6" fill="#FFFFFF" fill-opacity="0.55"/>
+<circle cx="163.1" cy="214.1" r="2.5" fill="#FFFFFF" fill-opacity="0.55"/>
+</g>
+<ellipse cx="200" cy="178.1" rx="66.3" ry="8" fill="#f9f392" fill-opacity="0.92" stroke="#FFFFFF" stroke-opacity="0.5" stroke-width="1"/>
+<path d="M 127.0 145 L 136.0 319 Q 200 333 264.0 319 L 273.0 145" fill="url(#d375_glass)" stroke="#9EB0BE" stroke-width="1.8"/>
+<path d="M 138.0 317 Q 200 329 262.0 317 L 264.0 323 Q 200 335 136.0 323 Z" fill="#DCE6EE" fill-opacity="0.65"/>
+<ellipse cx="200" cy="145" rx="73.0" ry="10" fill="none" stroke="#B6C6D4" stroke-width="1.8"/>
+<line x1="138.0" y1="159" x2="147.0" y2="309" stroke="#FFFFFF" stroke-opacity="0.58" stroke-width="4" stroke-linecap="round"/>
+  </g>
+</svg>

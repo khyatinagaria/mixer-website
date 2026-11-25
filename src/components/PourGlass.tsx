@@ -3,12 +3,14 @@ import { PourPlayer, CANVAS_H, CANVAS_W, type Seq } from '../lib/pour';
 
 type Props = {
   seq: Seq | null; glass: string; temp: string; carbonated: boolean; garnish?: string; ingredientIds: string[];
-  replayKey: string; /** quick preview mode for the live pantry glass: faster, no scrubber */ live?: boolean; empty?: boolean;
+  replayKey: string; /** the drink's finished illustration, shown when the pour is done */ art?: string; /** quick preview mode for the live pantry glass: faster, no scrubber */ live?: boolean; empty?: boolean;
 };
 
 const SPEEDS = [0.5, 1, 2];
 
-export default function PourGlass({ seq, glass, temp, carbonated, garnish = '', ingredientIds, replayKey, live, empty }: Props) {
+export default function PourGlass({ seq, glass, temp, carbonated, garnish = '', ingredientIds, replayKey, art, live, empty }: Props) {
+  const [artOk, setArtOk] = useState(true);
+  useEffect(() => { setArtOk(true); }, [art]);
   const ref = useRef<HTMLCanvasElement>(null);
   const player = useRef<PourPlayer | null>(null);
   const [st, setSt] = useState({ t: 0, total: 1, step: -1, playing: false, done: false });
@@ -37,8 +39,11 @@ export default function PourGlass({ seq, glass, temp, carbonated, garnish = '', 
 
   return (
     <div className={'pour' + (live ? ' live' : '')}>
-      <canvas ref={ref} className="glass-canvas" width={CANVAS_W} height={CANVAS_H} role="img"
-        aria-label={seq && total ? `Animated glass: ${seq.steps.map(s => s.label).join(', then ')}` : 'Empty glass'} />
+      <div className={'pour-frame' + (art && artOk && st.done ? ' final' : '')}>
+        <canvas ref={ref} className="glass-canvas" width={CANVAS_W} height={CANVAS_H} role="img"
+          aria-label={seq && total ? `Animated glass: ${seq.steps.map(s => s.label).join(', then ')}` : 'Empty glass'} />
+        {art && artOk && <img className="pour-art" src={art} alt="" aria-hidden onError={() => setArtOk(false)} />}
+      </div>
       {!empty && total > 0 && (
         <div className="pour-ui">
           <p className="pour-caption" aria-live="polite"><span className="pour-n">{st.done ? '✓' : Math.max(1, st.step + 1) + '/' + total}</span>{caption}</p>

@@ -173,3 +173,11 @@ h3 small.muted { text-transform: none; letter-spacing: 0; font-weight: 400; marg
 .namesearch-list li.on { background: var(--bg2); }
 .namesearch-list li.none { cursor: default; color: var(--quiet); }
 @media (max-width: 640px) { .top { flex-wrap: wrap; } .namesearch { order: 3; flex-basis: 100%; max-width: none; } }
+
+/* the drink's finished illustration fades in when the pour is done */
+.pour-frame { position: relative; display: grid; place-items: center; }
+.pour-frame .glass-canvas { transition: opacity 0.7s ease; }
+.pour-art { position: absolute; left: 50%; bottom: 0; width: 118%; max-width: none; transform: translateX(-50%) scale(0.96); opacity: 0; pointer-events: none; transition: opacity 0.7s ease, transform 0.7s ease; }
+.pour-frame.final .glass-canvas { opacity: 0; }
+.pour-frame.final .pour-art { opacity: 1; transform: translateX(-50%) scale(1); }
+@media (prefers-reduced-motion: reduce) { .pour-frame .glass-canvas, .pour-art { transition: none; } }
