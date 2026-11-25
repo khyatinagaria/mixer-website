@@ -9,7 +9,7 @@ const boxes = artBoxes as Record<string, number[]>;
 
 /** The drink on its own (no background), cropped tight so it can sit on a card. */
 export default function DrinkPic({ id, className }: { id: string; className?: string }) {
-  if (PHOTOS.has(id)) return <img className={className} src={`/photos/${id}.png`} alt="" aria-hidden loading="lazy" decoding="async" />;
+  if (PHOTOS.has(id)) return <img className={className} src={`/photos/${id}.webp`} alt="" aria-hidden loading="lazy" decoding="async" />;
   const b = boxes[id]; if (!b) return null;
   const pad = 4, [x, y, w, h] = [b[0] - pad, b[1] - pad, b[2] + pad * 2, b[3] + pad * 2];
   return (
