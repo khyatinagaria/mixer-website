@@ -3,12 +3,12 @@ import { PourPlayer, CANVAS_H, CANVAS_W, type Seq } from '../lib/pour';
 
 type Props = {
   seq: Seq | null; glass: string; temp: string; carbonated: boolean; garnish?: string; ingredientIds: string[];
-  replayKey: string; /** the drink's finished illustration, shown when the pour is done */ art?: string; /** quick preview mode for the live pantry glass: faster, no scrubber */ live?: boolean; empty?: boolean;
+  replayKey: string; /** the drink's finished illustration, shown when the pour is done */ art?: string; /** the illustration's liquid color, so the pour ends on it */ finalColor?: (string | number)[]; /** quick preview mode for the live pantry glass: faster, no scrubber */ live?: boolean; empty?: boolean;
 };
 
 const SPEEDS = [0.5, 1, 2];
 
-export default function PourGlass({ seq, glass, temp, carbonated, garnish = '', ingredientIds, replayKey, art, live, empty }: Props) {
+export default function PourGlass({ seq, glass, temp, carbonated, garnish = '', ingredientIds, replayKey, art, finalColor, live, empty }: Props) {
   const [artOk, setArtOk] = useState(true);
   useEffect(() => { setArtOk(true); }, [art]);
   const ref = useRef<HTMLCanvasElement>(null);
@@ -20,7 +20,7 @@ export default function PourGlass({ seq, glass, temp, carbonated, garnish = '', 
   useEffect(() => {
     const c = ref.current; if (!c) return;
     if (!seq || !seq.steps.length) { player.current?.destroy(); player.current = null; paint(c); setSt({ t: 0, total: 1, step: -1, playing: false, done: false }); return; }
-    const p = new PourPlayer(c, seq, { glass, temp, carbonated, garnish, ingredientIds }, s => setSt(s));
+    const p = new PourPlayer(c, seq, { glass, temp, carbonated, garnish, ingredientIds, finalColor }, s => setSt(s));
     (c as any).__player = p; player.current = p;
     p.setSpeed(live ? 2.4 : speed);
     if (p.reduced && !live) p.finish(); else p.play();

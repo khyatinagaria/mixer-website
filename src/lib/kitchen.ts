@@ -398,7 +398,7 @@ export function withMethod(seq: Seq & { prep?: string | null }, o: MethodInput &
     if (st.kind === 'blend' && m.kitchen.some(k => k.kit.act === 'blend')) continue;
     if ((st.kind === 'pour' || st.kind === 'float') && allUsed && !st.strained && !st.blendedPour) {
       if (merged) { merged.ml = (merged.ml || 0) + (st.ml || 0); merged.ids = [...merged.ids, ...ids]; continue; }
-      merged = { ...st, color: prodColor(st.color), opacity: Math.max(0.35, Math.min(0.9, (m.op + (st.opacity ?? 0.5)) / 2 + 0.1)), label: `${st.into === 'shaker' ? 'Pour the ' + m.product + ' into the shaker' : 'Pour in the ' + m.product}`, detail: `Pour ${Math.round(st.ml || 0)} ml of the ${m.product} ${st.into === 'shaker' ? 'into the shaker' : 'into the glass'}.` } as SeqStep;
+      merged = { ...st, fromKitchen: true, color: prodColor(st.color), opacity: Math.max(0.35, Math.min(0.9, (m.op + (st.opacity ?? 0.5)) / 2 + 0.1)), label: `${st.into === 'shaker' ? 'Pour the ' + m.product + ' into the shaker' : 'Pour in the ' + m.product}`, detail: `Pour ${Math.round(st.ml || 0)} ml of the ${m.product} ${st.into === 'shaker' ? 'into the shaker' : 'into the glass'}.` } as SeqStep;
       glass.push(merged); continue;
     }
     glass.push({ ...st });
