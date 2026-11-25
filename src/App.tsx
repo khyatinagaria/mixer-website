@@ -10,6 +10,9 @@ import Stage, { type View } from './components/Stage';
 const read = <T,>(k: string, d: T): T => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
 const write = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } };
 
+/** Pantry items that count as each other when matching drinks (the chocolate syrup chip says "/ cocoa"). */
+const SAME: Record<string, string[]> = { chocolate_syrup: ['cocoa'], cocoa: ['chocolate_syrup'] };
+
 function drinkView(d: Drink, lab: Lab, pantry: Set<string>): View {
   const badges: string[] = [];
   if (d.diet.vegan) badges.push('Vegan'); else if (d.diet.dairy_free) badges.push('Dairy-free');
@@ -52,7 +55,7 @@ export default function App() {
       || (f.indianFirst ? Number(isIndian(b)) - Number(isIndian(a)) : 0) || a.name.localeCompare(b.name);
     const scored = lab.drinks.filter(d => passesDiet(d, f.diet)).map(d => {
       const ids = new Set(d.ingredients.map(i => i.id));
-      return { drink: d, hit: pantry.filter(p => ids.has(p)).length };
+      return { drink: d, hit: pantry.filter(p => ids.has(p) || (SAME[p] || []).some(x => ids.has(x))).length };
     });
     const exact = scored.filter(s => s.hit === pantry.length).sort((a, b) => a.drink.ingredients.length - b.drink.ingredients.length || tie(a.drink, b.drink));
     if (exact.length) return { mode: 'exact', rows: exact };
