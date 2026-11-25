@@ -6,7 +6,6 @@ import Pantry from './components/Pantry';
 import Filters, { type FilterState } from './components/Filters';
 import Results, { type Row, type Mode } from './components/Results';
 import Stage, { type View } from './components/Stage';
-import { CREDITS } from './components/DrinkPic';
 
 const read = <T,>(k: string, d: T): T => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
 const write = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } };
@@ -91,12 +90,7 @@ export default function App() {
         </div>
       </main>
       {pantry.length > 0 && !view && <button className="jump" onClick={() => document.querySelector('.col-results')?.scrollIntoView({ behavior: 'smooth' })}>See {results.rows.length} drink{results.rows.length === 1 ? '' : 's'} ↓</button>}
-      <footer className="foot">Zero-proof means no alcohol. Where a recipe shows "Recipe checked against", it follows that published page, scaled to one glass. Recipes marked "House recipe" are our own.
-        <details className="credits"><summary>Photo credits</summary>
-          <p>Some drink photos are shared by their photographers under Creative Commons licences. We cut each drink out of its background; the cut-outs keep the same licence.</p>
-          <ul>{Object.entries(CREDITS).map(([id, c]) => <li key={id}>{lab.drinkById[id]?.name || id}: <a href={c.source} target="_blank" rel="noopener noreferrer">"{c.title}"</a> by {c.author}, <a href={c.license_url} target="_blank" rel="noopener noreferrer">{c.license}</a></li>)}</ul>
-        </details>
-      </footer>
+      <footer className="foot">Zero-proof means no alcohol. Where a recipe shows "Recipe checked against", it follows that published page, scaled to one glass. Recipes marked "House recipe" are our own.</footer>
     </div>
   );
 }

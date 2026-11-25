@@ -194,7 +194,3 @@ h3 small.muted { text-transform: none; letter-spacing: 0; font-weight: 400; marg
 .card .card-body > .tags { display: flex; }
 .card .card-body::before { content: ''; float: right; width: 64px; height: 26px; margin: -10px -12px 0 6px; } /* keeps the first title line clear of the picture */
 @media (prefers-reduced-motion: reduce) { .card-pic { transition: none; } .card:hover .card-pic { transform: none; } }
-.credits { margin: 10px auto 0; max-width: 640px; text-align: left; }
-.credits summary { cursor: pointer; text-align: center; }
-.credits ul { padding-left: 18px; margin: 6px 0 0; }
-.credits a { color: inherit; }
