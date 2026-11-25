@@ -98,7 +98,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .tier { font: 800 1.2rem var(--serif); margin: 18px 0 10px; display: flex; align-items: center; gap: 8px; }
 .count { font: 700 0.75rem var(--sans); background: var(--ink); color: var(--bg); border-radius: 99px; padding: 1px 9px; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
-.card { background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: transform 0.15s, box-shadow 0.15s; }
+.card { position: relative; background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; display: flex; flex-direction: column; transition: transform 0.15s, box-shadow 0.15s; }
 .card:hover { transform: translateY(-3px); box-shadow: var(--shadow); } .card.active { border-color: var(--accent); border-width: 2.5px; }
 .card-btn { background: none; border: 0; padding: 0; text-align: left; display: flex; flex-direction: column; flex: 1; }
 .card-band { height: 74px; display: block; position: relative; }
@@ -181,3 +181,16 @@ h3 small.muted { text-transform: none; letter-spacing: 0; font-weight: 400; marg
 .pour-frame.final .glass-canvas { opacity: 0; }
 .pour-frame.final .pour-art { opacity: 1; transform: translateX(-50%) scale(1); }
 @media (prefers-reduced-motion: reduce) { .pour-frame .glass-canvas, .pour-art { transition: none; } }
+
+/* drink picture that pops out of the card's top-right corner */
+.grid { padding-top: 12px; row-gap: 22px; }
+.card-band { border-radius: 14px 14px 0 0; }
+.card-btn { border-radius: 16px; }
+.card-pic { position: absolute; right: -8px; top: -16px; width: 92px; height: 138px; object-fit: contain; object-position: bottom; pointer-events: none; filter: drop-shadow(0 6px 8px rgba(43, 26, 18, 0.22)); transition: transform 0.2s ease; transform-origin: bottom center; }
+.card:hover .card-pic { transform: translateY(-3px) rotate(-2deg); }
+.card .card-band { height: 100px; }
+.card .card-body { display: block; }
+.card .card-body > * { display: block; margin-bottom: 4px; }
+.card .card-body > .tags { display: flex; }
+.card .card-body::before { content: ''; float: right; width: 64px; height: 26px; margin: -10px -12px 0 6px; } /* keeps the first title line clear of the picture */
+@media (prefers-reduced-motion: reduce) { .card-pic { transition: none; } .card:hover .card-pic { transform: none; } }
