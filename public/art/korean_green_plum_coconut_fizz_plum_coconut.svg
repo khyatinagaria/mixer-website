@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  
+  <g id="drink-artwork">
+
+    <defs>
+      <linearGradient id="d302_liq" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#a61b40" stop-opacity="0.86"/>
+        <stop offset="55%" stop-color="#a61b40" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#640b24" stop-opacity="1.0"/>
+      </linearGradient>
+      <linearGradient id="d302_glass" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.55"/>
+        <stop offset="18%" stop-color="#FFFFFF" stop-opacity="0.12"/>
+        <stop offset="82%" stop-color="#DCE6EE" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.48"/>
+      </linearGradient>
+      <linearGradient id="d302_ceramic" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#F8F5F0"/>
+        <stop offset="30%" stop-color="#EFECE6"/>
+        <stop offset="85%" stop-color="#DCD6CC"/>
+        <stop offset="100%" stop-color="#C8C0B4"/>
+      </linearGradient>
+      <radialGradient id="d302_shadow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#000000" stop-opacity="0.15"/>
+        <stop offset="70%" stop-color="#000000" stop-opacity="0.05"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    
+<ellipse cx="200" cy="337" rx="74.4" ry="11" fill="url(#d302_shadow)"/>
+<g transform="rotate(14 228 155)">
+<rect x="224" y="103" width="8" height="128" rx="3" fill="#F2EDE4" stroke="#B89F82" stroke-width="1"/>
+<line x1="224" y1="111" x2="232" y2="117" stroke="#C96A4B" stroke-width="2.5"/>
+<line x1="224" y1="125" x2="232" y2="131" stroke="#C96A4B" stroke-width="2.5"/>
+<line x1="224" y1="139" x2="232" y2="145" stroke="#C96A4B" stroke-width="2.5"/>
+<line x1="224" y1="153" x2="232" y2="159" stroke="#C96A4B" stroke-width="2.5"/>
+<line x1="224" y1="167" x2="232" y2="173" stroke="#C96A4B" stroke-width="2.5"/>
+</g>
+<clipPath id="d302_clip"><path d="M 129.0 157 L 271.0 157 L 255.0 321 Q 200 329 145.0 321 Z"/></clipPath>
+<path d="M 124.0 155 L 276.0 155 L 260.0 319 Q 200 333 140.0 319 Z" fill="#5C3A21" stroke="#3D2310" stroke-width="2"/>
+<ellipse cx="200" cy="155" rx="76.0" ry="13" fill="#EAE4DA" stroke="#3D2310" stroke-width="1.8"/>
+<ellipse cx="200" cy="158" rx="71.0" ry="10" fill="#a61b40"/>
+  </g>
+</svg>

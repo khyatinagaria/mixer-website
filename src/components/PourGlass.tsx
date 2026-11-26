@@ -3,12 +3,14 @@ import { PourPlayer, CANVAS_H, CANVAS_W, type Seq } from '../lib/pour';
 
 type Props = {
   seq: Seq | null; glass: string; temp: string; carbonated: boolean; garnish?: string; ingredientIds: string[];
-  replayKey: string; /** quick preview mode for the live pantry glass: faster, no scrubber */ live?: boolean; empty?: boolean;
+  replayKey: string; /** the drink's finished illustration, shown when the pour is done */ art?: string; /** the illustration's liquid color, so the pour ends on it */ finalColor?: (string | number)[]; /** quick preview mode for the live pantry glass: faster, no scrubber */ live?: boolean; empty?: boolean;
 };
 
 const SPEEDS = [0.5, 1, 2];
 
-export default function PourGlass({ seq, glass, temp, carbonated, garnish = '', ingredientIds, replayKey, live, empty }: Props) {
+export default function PourGlass({ seq, glass, temp, carbonated, garnish = '', ingredientIds, replayKey, art, finalColor, live, empty }: Props) {
+  const [artOk, setArtOk] = useState(true);
+  useEffect(() => { setArtOk(true); }, [art]);
   const ref = useRef<HTMLCanvasElement>(null);
   const player = useRef<PourPlayer | null>(null);
   const [st, setSt] = useState({ t: 0, total: 1, step: -1, playing: false, done: false });
@@ -18,7 +20,7 @@ export default function PourGlass({ seq, glass, temp, carbonated, garnish = '', 
   useEffect(() => {
     const c = ref.current; if (!c) return;
     if (!seq || !seq.steps.length) { player.current?.destroy(); player.current = null; paint(c); setSt({ t: 0, total: 1, step: -1, playing: false, done: false }); return; }
-    const p = new PourPlayer(c, seq, { glass, temp, carbonated, garnish, ingredientIds }, s => setSt(s));
+    const p = new PourPlayer(c, seq, { glass, temp, carbonated, garnish, ingredientIds, finalColor }, s => setSt(s));
     (c as any).__player = p; player.current = p;
     p.setSpeed(live ? 2.4 : speed);
     if (p.reduced && !live) p.finish(); else p.play();
@@ -37,8 +39,11 @@ export default function PourGlass({ seq, glass, temp, carbonated, garnish = '', 
 
   return (
     <div className={'pour' + (live ? ' live' : '')}>
-      <canvas ref={ref} className="glass-canvas" width={CANVAS_W} height={CANVAS_H} role="img"
-        aria-label={seq && total ? `Animated glass: ${seq.steps.map(s => s.label).join(', then ')}` : 'Empty glass'} />
+      <div className={'pour-frame' + (art && artOk && st.done ? ' final' : '')}>
+        <canvas ref={ref} className="glass-canvas" width={CANVAS_W} height={CANVAS_H} role="img"
+          aria-label={seq && total ? `Animated glass: ${seq.steps.map(s => s.label).join(', then ')}` : 'Empty glass'} />
+        {art && artOk && <img className="pour-art" src={art} alt="" aria-hidden onError={() => setArtOk(false)} />}
+      </div>
       {!empty && total > 0 && (
         <div className="pour-ui">
           <p className="pour-caption" aria-live="polite"><span className="pour-n">{st.done ? '✓' : Math.max(1, st.step + 1) + '/' + total}</span>{caption}</p>

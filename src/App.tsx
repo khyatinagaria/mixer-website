@@ -10,6 +10,9 @@ import Stage, { type View } from './components/Stage';
 const read = <T,>(k: string, d: T): T => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
 const write = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } };
 
+/** Pantry items that count as each other when matching drinks (the chocolate syrup chip says "/ cocoa"). */
+const SAME: Record<string, string[]> = { chocolate_syrup: ['cocoa'], cocoa: ['chocolate_syrup'] };
+
 function drinkView(d: Drink, lab: Lab, pantry: Set<string>): View {
   const badges: string[] = [];
   if (d.diet.vegan) badges.push('Vegan'); else if (d.diet.dairy_free) badges.push('Dairy-free');
@@ -41,18 +44,19 @@ export default function App() {
 
   const results = useMemo((): { mode: Mode; rows: Row[] } | null => {
     if (!lab) return null;
+    const tempOk = (d: Drink) => !f.temp || (f.temp === 'hot' ? d.temp === 'hot' : d.temp !== 'hot');
     if (!pantry.length) {
       const out = lab.engine.recommend({ pantry: [], season: f.season, mood: f.mood, vibe: f.vibe, diet: f.diet, limit: 999 });
       const boost = (r: { drink: Drink; score: number }) => r.score + (f.indianFirst && isIndian(r.drink) ? 0.08 : 0);
-      const rows = [...out.forYou].sort((a: any, b: any) => boost(b) - boost(a)).map((r: any) => ({ drink: r.drink as Drink, hit: 0 }));
+      const rows = [...out.forYou].sort((a: any, b: any) => boost(b) - boost(a)).map((r: any) => ({ drink: r.drink as Drink, hit: 0 })).filter((r: Row) => tempOk(r.drink));
       return { mode: 'browse', rows };
     }
     // Drinks from the database that use every selected ingredient (and possibly more), fewest ingredients first.
     const tie = (a: Drink, b: Drink) => Number(!!f.season && b.season.includes(f.season)) - Number(!!f.season && a.season.includes(f.season))
       || (f.indianFirst ? Number(isIndian(b)) - Number(isIndian(a)) : 0) || a.name.localeCompare(b.name);
-    const scored = lab.drinks.filter(d => passesDiet(d, f.diet)).map(d => {
+    const scored = lab.drinks.filter(d => passesDiet(d, f.diet) && tempOk(d)).map(d => {
       const ids = new Set(d.ingredients.map(i => i.id));
-      return { drink: d, hit: pantry.filter(p => ids.has(p)).length };
+      return { drink: d, hit: pantry.filter(p => ids.has(p) || (SAME[p] || []).some(x => ids.has(x))).length };
     });
     const exact = scored.filter(s => s.hit === pantry.length).sort((a, b) => a.drink.ingredients.length - b.drink.ingredients.length || tie(a.drink, b.drink));
     if (exact.length) return { mode: 'exact', rows: exact };

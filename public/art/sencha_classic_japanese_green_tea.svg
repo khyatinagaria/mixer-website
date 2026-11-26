@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  
+  <g id="drink-artwork">
+
+    <defs>
+      <linearGradient id="d517_liq" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#d2f1dc" stop-opacity="0.96"/>
+        <stop offset="55%" stop-color="#d2f1dc" stop-opacity="0.98"/>
+        <stop offset="100%" stop-color="#86caa1" stop-opacity="1.0"/>
+      </linearGradient>
+      <linearGradient id="d517_glass" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.55"/>
+        <stop offset="18%" stop-color="#FFFFFF" stop-opacity="0.12"/>
+        <stop offset="82%" stop-color="#DCE6EE" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.48"/>
+      </linearGradient>
+      <linearGradient id="d517_ceramic" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#F8F5F0"/>
+        <stop offset="30%" stop-color="#EFECE6"/>
+        <stop offset="85%" stop-color="#DCD6CC"/>
+        <stop offset="100%" stop-color="#C8C0B4"/>
+      </linearGradient>
+      <radialGradient id="d517_shadow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#000000" stop-opacity="0.15"/>
+        <stop offset="70%" stop-color="#000000" stop-opacity="0.05"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    
+<ellipse cx="200" cy="327" rx="60.8" ry="11" fill="url(#d517_shadow)"/>
+<clipPath id="d517_clip"><path d="M 141.0 147 L 259.0 147 L 244.0 311 Q 200 319 156.0 311 Z"/></clipPath>
+<path d="M 136.0 145 L 264.0 145 L 249.0 309 Q 200 323 151.0 309 Z" fill="url(#d517_ceramic)" stroke="#B8AFA2" stroke-width="2"/>
+<ellipse cx="200" cy="145" rx="64.0" ry="13" fill="#EAE4DA" stroke="#B8AFA2" stroke-width="1.8"/>
+<ellipse cx="200" cy="148" rx="59.0" ry="10" fill="#d2f1dc"/>
+  </g>
+</svg>

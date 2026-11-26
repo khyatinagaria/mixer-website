@@ -1,6 +1,10 @@
 import { useMemo, useState } from 'react';
 import type { Lab, Drink } from '../lib/data';
 import { label, isIndian } from '../lib/helpers';
+import DrinkPic from './DrinkPic';
+import artColors from '../lib/artColors.json';
+
+const liq = artColors as Record<string, (string | number)[]>;
 
 export type Mode = 'browse' | 'exact' | 'closest';
 export type Row = { drink: Drink; hit: number };
@@ -14,7 +18,8 @@ function Card({ r, mode, total, open, active }: { r: Row; mode: Mode; total: num
   return (
     <article className={'card' + (active ? ' active' : '')}>
       <button className="card-btn" onClick={() => open(d.id)} aria-label={`Open recipe for ${d.name}`}>
-        <span className="card-band" style={{ background: `linear-gradient(135deg, ${d.color_hex}, ${d.layers[0]?.color_hex || d.color_hex})` }}><span className="card-temp">{tempIcon}</span></span>
+        <span className="card-band" style={{ background: liq[d.id] ? `linear-gradient(135deg, ${liq[d.id][0]}, ${liq[d.id][2]})` : `linear-gradient(135deg, ${d.color_hex}, ${d.layers[0]?.color_hex || d.color_hex})` }}><span className="card-temp">{tempIcon}</span></span>
+        <DrinkPic id={d.id} className="card-pic" />
         <span className="card-body">
           <span className="card-title">{d.name}</span>
           <span className="card-meta">{d.section_label}{isIndian(d) && d.section !== 'indian' ? ' · desi' : ''}</span>

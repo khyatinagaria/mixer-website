@@ -24,12 +24,12 @@ export const SHAPES: Record<GlassShape, { d: string; rim: number; bottom: number
 
 export type SeqStep = {
   i: number; kind: string; ids: string[]; label: string; dur: number;
-  into?: string; ml?: number; color?: string; opacity?: number; density?: number; flow?: string; cubes?: number; strained?: boolean; blendedPour?: boolean; gentle?: boolean;
+  into?: string; ml?: number; color?: string; opacity?: number; density?: number; flow?: string; cubes?: number; strained?: boolean; blendedPour?: boolean; gentle?: boolean; fromKitchen?: boolean;
   /** kitchen steps (kind 'prep', into 'kitchen') carry their scene here, see kitchen.ts */
   kit?: unknown; detail?: string;
 };
 export type Seq = { steps: SeqStep[]; layered: boolean; blended: boolean; shaken: boolean; totalMl: number; color: string; roles: Record<string, string>; duration: number };
-export type PlayerOpts = { glass: string; temp: string; carbonated: boolean; garnish: string; ingredientIds: string[]; ingredientNames?: Record<string, string> };
+export type PlayerOpts = { glass: string; temp: string; carbonated: boolean; garnish: string; ingredientIds: string[]; ingredientNames?: Record<string, string>; /** the finished drink's liquid color from its illustration: [top, middle, bottom, opacity] */ finalColor?: (string | number)[] };
 
 const GARNISHES: { re: RegExp; kind: 'wheel' | 'leaf' | 'cherry' | 'stick' | 'star' | 'dot'; color: string }[] = [
   { re: /orange|tangerine|blood orange/i, kind: 'wheel', color: '#F7941D' },
@@ -63,7 +63,7 @@ export const CANVAS_W = 300, CANVAS_H = 430, OX = 30, OY = 92;
 const PAUSE_END = 0.7; // seconds of "ready" hold before the idle loop
 
 type P = { ct: string; k: string; x: number; y: number; vx: number; vy: number; life: number; max: number; r: number; c: number[]; ph: number };
-type Layer = { j: number; ml: number; base: number[]; color: number[]; opacity: number; fizz: boolean; mix: number };
+type Layer = { j: number; ml: number; base: number[]; color: number[]; opacity: number; fizz: boolean; mix: number; deep?: number[] };
 type Vessel = { into: string; kind: string; x: number; y: number; angle: number; fill: number; color: number[]; head: number; tail: number; impactX: number; flow: string; width: number; spoon: boolean; ml: number };
 type Cube = { k: number; x0: number; size: number; rot: number; tDrop: number; tLand: number; lift: number };
 type Shp = { d: string; rim: number; bottom: number; extra: string };
@@ -145,6 +145,24 @@ export class PourPlayer {
     const c = this.ctrs[name] || this.ctrs.glass; this.active = c.name;
     this.shape = c.shape; this.path = c.path; this.extra = c.extra; this.rows = c.rows; this.floorY = c.floorY; this.rimY = c.rimY; this.cx = c.cx; this.pxPerMl = c.pxPerMl; this.events = c.events; this.cubes = c.cubes;
   }
+  /** when the kitchen makes most of the drink (a blender lassi, a brewed tea), its pot or jar
+   *  also builds toward the finished color, in proportion to how much of the glass it fills */
+  private tintKitchen() {
+    const fc = this.opts.finalColor; if (!fc) return;
+    const isLiq = (st: SeqStep) => st.kind === 'pour' || st.kind === 'float' || (st.kind === 'top' && st.flow === 'fizz');
+    let full = 0, fromK = 0;
+    for (const st of this.steps) if (isLiq(st) && !st.strained) { full += st.ml || 0; if (st.fromKitchen || (st.blendedPour && this.kitchenEnd > 0)) fromK += st.ml || 0; }
+    const share = full > 0 ? clamp(fromK / full) : 0; if (share < 0.05) return;
+    const ks = this.steps.filter(st => st.kind === 'prep' && (st as KStep).kit), n = ks.filter(st => (st as KStep).kit.act !== 'serve').length || 1;
+    const mid = rgb(String(fc[1])), op = Number(fc[3]) || 0.9;
+    const tint = (c: any, w: number) => (c && c.level > 0.02 ? { ...c, color: mixc(c.color, mid, w), op: lerp(c.op, Math.max(c.op, op * 0.9), w) } : c);
+    let i = 0;
+    this.steps = this.steps.map(st => {
+      const k = st as KStep; if (st.kind !== 'prep' || !k.kit) return st;
+      const serve = k.kit.act === 'serve', w0 = share * (serve ? 1 : i / n), w1 = share * (serve ? 1 : (i + 1) / n); if (!serve) i++;
+      return { ...k, kit: { ...k.kit, before: tint(k.kit.before, w0), after: tint(k.kit.after, w1), src: k.kit.src && tint(k.kit.src, w0) } } as KStep;
+    });
+  }
   private mine(st: SeqStep) { return (st.into || 'glass') === this.active; }
   private rowAt(y: number) { const i = clamp(Math.round(y - this.shape.rim), 0, this.rows.length - 1); return this.rows[i]; }
 
@@ -155,6 +173,7 @@ export class PourPlayer {
     this.total = s;
     this.kitchenEnd = 0;
     for (let j = 0; j < this.steps.length && this.steps[j].kind === 'prep'; j++) this.kitchenEnd = this.starts[j] + this.steps[j].dur;
+    this.tintKitchen();
     const names = this.steps.some(x => x.into === 'shaker') ? ['shaker', 'glass'] : ['glass'];
     this.ctrs = {};
     for (const name of names) {
@@ -272,6 +291,17 @@ export class PourPlayer {
       const target = rgb(st.color || '#ccc'), amt = easeIO(q) * (st.gentle ? 0.4 : 1);
       for (const l of out) if (this.starts[l.j] < this.starts[k]) { l.color = mixc(l.color, target, amt); l.opacity = lerp(l.opacity, 0.9, amt); l.mix = Math.max(l.mix, amt); }
     });
+    // build toward the finished drink's real color (from its illustration) as the liquid goes in,
+    // so the last frame matches the picture the animation fades into
+    const fc = this.opts.finalColor;
+    if (fc && out.length) {
+      let full = 0;
+      this.steps.forEach(st => { if ((st.kind === 'pour' || st.kind === 'float' || (st.kind === 'top' && st.flow === 'fizz')) && this.mine(st)) full += st.ml || 0; });
+      const have = out.reduce((a, l) => a + l.ml, 0);
+      const w = full > 0 ? clamp(have / full) : 1, k = 0.35 + 0.65 * w;
+      const mid = rgb(String(fc[1])), deep = rgb(String(fc[2])), op = Number(fc[3]) || 0.9;
+      for (const l of out) { l.color = mixc(l.color, mid, k * w + (1 - w) * 0.25); l.opacity = lerp(l.opacity, op, w); l.deep = mixc(l.color.map(v => v * 0.88), deep, w); }
+    }
     return out;
   }
   private mixOf(t: number) { // 0..1 how stirred the drink currently is (drives swirl streaks)
@@ -521,7 +551,7 @@ export class PourPlayer {
       const yt = upper(120), yb = Math.min(this.floorY + 10, lower(120));
       const gr = ctx.createLinearGradient(0, yt, 0, Math.max(yt + 1, yb));
       const a = clamp(l.opacity, 0.4, 0.96);
-      gr.addColorStop(0, css(l.color, a)); gr.addColorStop(1, css(l.color.map(v => v * 0.88), a));
+      gr.addColorStop(0, css(l.color, a)); gr.addColorStop(1, css(l.deep || l.color.map(v => v * 0.88), a));
       ctx.fillStyle = gr; ctx.fill();
       // a darker meniscus line makes pale liquids (milk, oat, coconut) readable on a pale glass
       ctx.strokeStyle = css(l.color.map(v => v * 0.62), 0.45 * (1 - l.mix)); ctx.lineWidth = 1.4; ctx.beginPath();

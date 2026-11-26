@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  
+  <g id="drink-artwork">
+
+    <defs>
+      <linearGradient id="d504_liq" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#ffb731" stop-opacity="0.96"/>
+        <stop offset="55%" stop-color="#ffb731" stop-opacity="0.98"/>
+        <stop offset="100%" stop-color="#d57800" stop-opacity="1.0"/>
+      </linearGradient>
+      <linearGradient id="d504_glass" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.55"/>
+        <stop offset="18%" stop-color="#FFFFFF" stop-opacity="0.12"/>
+        <stop offset="82%" stop-color="#DCE6EE" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.48"/>
+      </linearGradient>
+      <linearGradient id="d504_ceramic" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#F8F5F0"/>
+        <stop offset="30%" stop-color="#EFECE6"/>
+        <stop offset="85%" stop-color="#DCD6CC"/>
+        <stop offset="100%" stop-color="#C8C0B4"/>
+      </linearGradient>
+      <radialGradient id="d504_shadow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#000000" stop-opacity="0.15"/>
+        <stop offset="70%" stop-color="#000000" stop-opacity="0.05"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    
+<ellipse cx="200" cy="347" rx="59.5" ry="11" fill="url(#d504_shadow)"/>
+<g transform="rotate(14 228 95)">
+<rect x="224" y="43" width="8" height="180" rx="3" fill="#F2EDE4" stroke="#B89F82" stroke-width="1"/>
+<line x1="224" y1="51" x2="232" y2="57" stroke="#C96A4B" stroke-width="2.5"/>
+<line x1="224" y1="65" x2="232" y2="71" stroke="#C96A4B" stroke-width="2.5"/>
+<line x1="224" y1="79" x2="232" y2="85" stroke="#C96A4B" stroke-width="2.5"/>
+<line x1="224" y1="93" x2="232" y2="99" stroke="#C96A4B" stroke-width="2.5"/>
+<line x1="224" y1="107" x2="232" y2="113" stroke="#C96A4B" stroke-width="2.5"/>
+</g>
+<clipPath id="d504_clip"><path d="M 140.0 97 L 260.0 97 L 243.0 331 Q 200 339 157.0 331 Z"/></clipPath>
+<g clip-path="url(#d504_clip)">
+<rect x="135.0" y="156.4" width="130" height="188.6" fill="url(#d504_liq)"/>
+</g>
+<ellipse cx="200" cy="156.4" rx="55.6" ry="11" fill="#FFFDF9" fill-opacity="0.92" stroke="#FFFFFF" stroke-opacity="0.5" stroke-width="1"/>
+<path d="M 135.0 95 L 152.0 329 Q 200 343 248.0 329 L 265.0 95" fill="url(#d504_glass)" stroke="#9EB0BE" stroke-width="1.8"/>
+<path d="M 154.0 327 Q 200 339 246.0 327 L 248.0 333 Q 200 345 152.0 333 Z" fill="#DCE6EE" fill-opacity="0.65"/>
+<ellipse cx="200" cy="95" rx="65.0" ry="10" fill="none" stroke="#B6C6D4" stroke-width="1.8"/>
+<line x1="146.0" y1="109" x2="163.0" y2="319" stroke="#FFFFFF" stroke-opacity="0.58" stroke-width="4" stroke-linecap="round"/>
+<ellipse cx="186" cy="154.44" rx="5" ry="2.2" fill="#D84315"/>
+<ellipse cx="200" cy="153.44" rx="5" ry="2.2" fill="#8BC34A"/>
+<ellipse cx="212" cy="155.44" rx="5" ry="2.2" fill="#D7CCC8"/>
+<ellipse cx="195" cy="157.44" rx="5" ry="2.2" fill="#FF6F00"/>
+  </g>
+</svg>

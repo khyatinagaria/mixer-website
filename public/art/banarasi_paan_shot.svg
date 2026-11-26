@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  
+  <g id="drink-artwork">
+
+    <defs>
+      <linearGradient id="d28_liq" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#c96320" stop-opacity="0.86"/>
+        <stop offset="55%" stop-color="#a61b1e" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#640b0e" stop-opacity="1.0"/>
+      </linearGradient>
+      <linearGradient id="d28_glass" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.55"/>
+        <stop offset="18%" stop-color="#FFFFFF" stop-opacity="0.12"/>
+        <stop offset="82%" stop-color="#DCE6EE" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.48"/>
+      </linearGradient>
+      <linearGradient id="d28_ceramic" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#F8F5F0"/>
+        <stop offset="30%" stop-color="#EFECE6"/>
+        <stop offset="85%" stop-color="#DCD6CC"/>
+        <stop offset="100%" stop-color="#C8C0B4"/>
+      </linearGradient>
+      <radialGradient id="d28_shadow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#000000" stop-opacity="0.15"/>
+        <stop offset="70%" stop-color="#000000" stop-opacity="0.05"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    
+<ellipse cx="200" cy="327" rx="75.6" ry="11" fill="url(#d28_shadow)"/>
+<path d="M 265.3 171.0 C 299.3 171.0, 299.3 275.4, 265.3 275.4" fill="none" stroke="#B8C6D1" stroke-width="10" stroke-linecap="round"/>
+<path d="M 265.3 171.0 C 299.3 171.0, 299.3 275.4, 265.3 275.4" fill="none" stroke="#FFFFFF" stroke-opacity="0.6" stroke-width="3" stroke-linecap="round"/>
+<clipPath id="d28_clip"><path d="M 137.0 137 L 263.0 137 L 256.0 311 Q 200 319 144.0 311 Z"/></clipPath>
+<g clip-path="url(#d28_clip)">
+<rect x="132.0" y="174.6" width="136" height="150.4" fill="url(#d28_liq)"/>
+</g>
+<ellipse cx="200" cy="174.6" rx="61.5" ry="8" fill="#c92024" fill-opacity="0.92" stroke="#FFFFFF" stroke-opacity="0.5" stroke-width="1"/>
+<path d="M 132.0 135 L 139.0 309 Q 200 323 261.0 309 L 268.0 135" fill="url(#d28_glass)" stroke="#9EB0BE" stroke-width="1.8"/>
+<path d="M 141.0 307 Q 200 319 259.0 307 L 261.0 313 Q 200 325 139.0 313 Z" fill="#DCE6EE" fill-opacity="0.65"/>
+<ellipse cx="200" cy="135" rx="68.0" ry="10" fill="none" stroke="#B6C6D4" stroke-width="1.8"/>
+<line x1="143.0" y1="149" x2="150.0" y2="299" stroke="#FFFFFF" stroke-opacity="0.58" stroke-width="4" stroke-linecap="round"/>
+<circle cx="190" cy="171.6" r="8" fill="#C62828" stroke="#8E0000" stroke-width="1.2"/>
+<circle cx="206" cy="173.6" r="7" fill="#AD1457" stroke="#78002E" stroke-width="1.2"/>
+  </g>
+</svg>

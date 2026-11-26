@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  
+  <g id="drink-artwork">
+
+    <defs>
+      <linearGradient id="d560_liq" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#f7db6c" stop-opacity="0.86"/>
+        <stop offset="55%" stop-color="#f7db6c" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#cda725" stop-opacity="1.0"/>
+      </linearGradient>
+      <linearGradient id="d560_glass" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.55"/>
+        <stop offset="18%" stop-color="#FFFFFF" stop-opacity="0.12"/>
+        <stop offset="82%" stop-color="#DCE6EE" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.48"/>
+      </linearGradient>
+      <linearGradient id="d560_ceramic" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#F8F5F0"/>
+        <stop offset="30%" stop-color="#EFECE6"/>
+        <stop offset="85%" stop-color="#DCD6CC"/>
+        <stop offset="100%" stop-color="#C8C0B4"/>
+      </linearGradient>
+      <radialGradient id="d560_shadow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#000000" stop-opacity="0.15"/>
+        <stop offset="70%" stop-color="#000000" stop-opacity="0.05"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    
+<ellipse cx="200" cy="337" rx="79.4" ry="11" fill="url(#d560_shadow)"/>
+<g transform="rotate(-14 172 145)">
+<rect x="168" y="93" width="8" height="135" rx="3" fill="#F2EDE4" stroke="#B89F82" stroke-width="1"/>
+<line x1="168" y1="101" x2="176" y2="107" stroke="#C96A4B" stroke-width="2.5"/>
+<line x1="168" y1="115" x2="176" y2="121" stroke="#C96A4B" stroke-width="2.5"/>
+<line x1="168" y1="129" x2="176" y2="135" stroke="#C96A4B" stroke-width="2.5"/>
+<line x1="168" y1="143" x2="176" y2="149" stroke="#C96A4B" stroke-width="2.5"/>
+<line x1="168" y1="157" x2="176" y2="163" stroke="#C96A4B" stroke-width="2.5"/>
+</g>
+<clipPath id="d560_clip"><path d="M 132.0 147 L 268.0 147 L 259.0 321 Q 200 329 141.0 321 Z"/></clipPath>
+<g clip-path="url(#d560_clip)">
+<rect x="127.0" y="182.4" width="146" height="152.6" fill="url(#d560_liq)"/>
+<rect x="198.2" y="190.4" width="26" height="24" rx="5" transform="rotate(-9 211.2 202.4)" fill="#FFFFFF" fill-opacity="0.34" stroke="#FFFFFF" stroke-opacity="0.65" stroke-width="1.2"/>
+<rect x="156.2" y="216.4" width="26" height="24" rx="5" transform="rotate(10 169.2 228.4)" fill="#FFFFFF" fill-opacity="0.34" stroke="#FFFFFF" stroke-opacity="0.65" stroke-width="1.2"/>
+<rect x="193.2" y="242.4" width="26" height="24" rx="5" transform="rotate(-11 206.2 254.4)" fill="#FFFFFF" fill-opacity="0.34" stroke="#FFFFFF" stroke-opacity="0.65" stroke-width="1.2"/>
+<rect x="151.2" y="268.4" width="26" height="24" rx="5" transform="rotate(8 164.2 280.4)" fill="#FFFFFF" fill-opacity="0.34" stroke="#FFFFFF" stroke-opacity="0.65" stroke-width="1.2"/>
+<rect x="188.2" y="294.4" width="26" height="24" rx="5" transform="rotate(-13 201.2 306.4)" fill="#FFFFFF" fill-opacity="0.34" stroke="#FFFFFF" stroke-opacity="0.65" stroke-width="1.2"/>
+</g>
+<ellipse cx="200" cy="182.4" rx="66.1" ry="8" fill="#f9e492" fill-opacity="0.92" stroke="#FFFFFF" stroke-opacity="0.5" stroke-width="1"/>
+<path d="M 127.0 145 L 136.0 319 Q 200 333 264.0 319 L 273.0 145" fill="url(#d560_glass)" stroke="#9EB0BE" stroke-width="1.8"/>
+<path d="M 138.0 317 Q 200 329 262.0 317 L 264.0 323 Q 200 335 136.0 323 Z" fill="#DCE6EE" fill-opacity="0.65"/>
+<ellipse cx="200" cy="145" rx="73.0" ry="10" fill="none" stroke="#B6C6D4" stroke-width="1.8"/>
+<line x1="138.0" y1="159" x2="147.0" y2="309" stroke="#FFFFFF" stroke-opacity="0.58" stroke-width="4" stroke-linecap="round"/>
+<g transform="translate(190,178.44)">
+<path d="M0,0 C-14,-16 -32,-12 -34,2 C-20,10 -6,6 0,0 Z" fill="#4CAF50" stroke="#2E7D32" stroke-width="1.2"/>
+<path d="M2,0 C16,-18 34,-12 36,2 C22,10 8,6 2,0 Z" fill="#66BB6A" stroke="#2E7D32" stroke-width="1.2"/>
+</g>
+  </g>
+</svg>

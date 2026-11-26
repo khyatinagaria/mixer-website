@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import PourGlass from './PourGlass';
+import artColors from '../lib/artColors.json';
 import { buildSequence } from '../lib/sequencer.js';
 import { withMethod } from '../lib/kitchen';
 import Radar from './Radar';
@@ -36,7 +37,7 @@ export default function Stage({ lab, view, units, setUnits, close, night }: Prop
       <div className="guide-top"><button className="link" onClick={close}>← Back to drinks</button>
         <div className="seg" role="group" aria-label="Units"><button className={units === 'ml' ? 'on' : ''} onClick={() => setUnits('ml')}>ml</button><button className={units === 'spoons' ? 'on' : ''} onClick={() => setUnits('spoons')}>cups & spoons</button></div></div>
       <div className="glass-wrap">
-        <PourGlass seq={seq} replayKey={v.key + tick} glass={v.glass} temp={v.temp} carbonated={v.carbonated} garnish={v.garnish} ingredientIds={v.ings.map(i => i.id)} />
+        <PourGlass seq={seq} art={`/art/${v.key}.svg`} finalColor={(artColors as Record<string, (string | number)[]>)[v.key]} replayKey={v.key + tick} glass={v.glass} temp={v.temp} carbonated={v.carbonated} garnish={v.garnish} ingredientIds={v.ings.map(i => i.id)} />
       </div>
       <div className="stage-body">
         <p className="kicker">{v.kicker}</p>

@@ -105,7 +105,9 @@ const SPLIT = new RegExp(`(?:[,;]\\s*(?:and\\s+)?(?:then\\s+)?|\\s+and\\s+then\\
 export function clausesOf(steps: string[]): string[] {
   const out: string[] = [];
   for (const s of steps) {
-    const sentences = s.replace(/\boz\./gi, 'oz').replace(/\s+/g, ' ').trim().split(/(?<=[.!?])\s+(?=[A-Z0-9])/);
+    // "Brew and chill the hibiscus base: steep 2 tbsp hibiscus..." - the heading only names the step; the method follows the colon
+    const body = s.replace(/^\s*(?:\d+[.)]\s*)?[A-Za-z][^:.\d()]{1,60}:\s+(?=\S)/, m => (m.split(/\s+/).length <= 9 ? '' : m));
+    const sentences = body.replace(/\boz\./gi, 'oz').replace(/\s+/g, ' ').trim().split(/(?<=[.!?])\s+(?=[A-Z0-9])/);
     for (const sen of sentences) {
       // keep "(enough for 5 glasses)" and "2 oz (60 ml)" with their clause, never split inside brackets
       const masked = sen.replace(/\([^)]*\)/g, m => m.replace(/[,;]/g, '\u0001').replace(/ and /g, ' \u0002 ').replace(/ then /g, ' \u0003 '));
@@ -118,7 +120,14 @@ export function clausesOf(steps: string[]): string[] {
       }
     }
   }
-  return out;
+  // a lead-in fragment that names no ingredient ("Once boiling", "In a small saucepan over medium heat") joins the clause after it
+  const merged: string[] = [];
+  for (let k = 0; k < out.length; k++) {
+    const c = out[k];
+    if (k + 1 < out.length && /^(once|when|after|in a|in the|on a|over|while)\b/i.test(c) && !thingsIn(c).length) { out[k + 1] = c + ', ' + out[k + 1].charAt(0).toLowerCase() + out[k + 1].slice(1); continue; }
+    merged.push(c);
+  }
+  return merged;
 }
 
 // ---------- what each clause does ----------
@@ -211,7 +220,8 @@ export type Method = { kitchen: KStep[]; kitchenText: string; glassText: string;
 /** Parse the recipe's own method into kitchen steps (empty when the recipe is built straight in the glass). */
 export function parseMethod(o: MethodInput): Method {
   const clauses = clausesOf(o.steps);
-  const acts = clauses.map(c => actOf(c.toLowerCase()));
+  // the verb outside brackets decides: "Make the base (… 1 inch grated ginger)" is not a grating step
+  const acts = clauses.map(c => actOf(c.toLowerCase().replace(/\([^)]*\)/g, ' ')));
   // Which clauses happen in the kitchen: the opening run before the glass is mentioned (when it really prepares
   // something), plus any later run that starts with real preparation (heat, boil, blend, steep, a pan or a bowl...).
   const glassy = clauses.map((c, k) => isGlass(c, acts[k]));
@@ -272,6 +282,8 @@ export function parseMethod(o: MethodInput): Method {
     if (source !== cur && source && act !== 'pour') { /* keep the source as the vessel being worked on when nothing moves */ if (vessel === cur) vessel = source; }
     if (vessel !== source && hasStuff(source) && (act === 'blend' || act === 'strain' || (act === 'pour' && !things.some(t => t.type !== 'liquid' && !/\bover\b/.test(c))) || (!things.length && act !== 'cut'))) from = source;
     if (act === 'pour' && !from && things.length) from = undefined;
+    // "Muddle it gently", "Let it cool": nothing new is named, so keep working on what is already in the last vessel
+    if (!things.length && act !== 'cut' && !from && !hasStuff(vessel) && hasStuff(cur)) vessel = cur;
     const before = copyC(store[vessel] || EMPTY());
     const src = from ? copyC(store[from]) : undefined;
     const after = copyC(before);
@@ -303,10 +315,18 @@ export function parseMethod(o: MethodInput): Method {
     if (from) { held[vessel] = [...(held[vessel] || []), ...(held[from] || [])]; delete store[from]; delete held[from]; }
     if (act !== 'cut') held[vessel] = [...(held[vessel] || []), ...things.map(t => t.name)];
     store[vessel] = after; if (act !== 'cut') cur = vessel;
-    const label = cap(pretty(raw.replace(/\s*\([^)]*\)/g, '')).replace(/^to serve,?\s*/i, '').trim());
+    let label = cap(pretty(raw.replace(/\s*\([^)]*\)/g, '')).replace(/^to serve,?\s*/i, '').trim());
+    const baseLabel = label;
+    if (!things.length && !['cut', 'add'].includes(act)) {
+      // name what is being worked on: "Strain" -> "Strain the hibiscus and water", "Muddle it" -> "Muddle the cucumber"
+      const what = [...new Set((held[vessel] || []).filter(n => !/^(ice|seeds?|leaves|peel|zest|black|white|green|red|fresh)$/.test(n)))];
+      const list = !what.length ? '' : what.length > 3 ? '\u0004mixture' : what.length > 1 ? what.slice(0, -1).join(', ') + ' and ' + what[what.length - 1] : what[0];
+      if (list && /\b(it|them)\b/i.test(label)) label = label.replace(/\b(it|them)\b/i, 'the ' + list);
+      else if (list && !/\b(the|everything|all)\b/i.test(label) && label.split(/\s+/).length <= 3) label = label.replace(/^(\S+)/, `$1 the ${list}`);
+    }
     kitchen.push({
-      i: 0, kind: 'prep', into: 'kitchen', ids: [], label, detail: cap(pretty(raw)) + '.', dur: DUR[act] || 1.4,
-      kit: { act, vessel: act === 'cut' ? 'board' : vessel, from, before, after, src, adds, timer: timerOf(raw), heat },
+      i: 0, kind: 'prep', into: 'kitchen', ids: [], label, detail: label !== baseLabel ? label + (/\([^)]*\)/.test(raw) ? ' ' + (raw.match(/\([^)]*\)/) || [''])[0] : '') + '.' : cap(pretty(raw)) + '.', dur: DUR[act] || 1.4,
+      kit: { act, vessel: act === 'cut' ? 'board' : vessel, from, before, after, src, adds, timer: timerOf(raw.replace(/\([^)]*\)/g, ' ')) || timerOf(raw), heat },
     });
     lastAct = act;
   });
@@ -319,12 +339,17 @@ export function parseMethod(o: MethodInput): Method {
   const glassText = clauses.filter((_, k) => !inK[k]).join('. ').toLowerCase();
   const END = '(?:syrup|concentrate|tea|base|puree|purée|juice|brew|infusion|cordial|mix|mixture|paste|decoction|sharbat|extract|milk|soda|lemonade|cooler|water|sauce|kadha|panna)';
   const END2 = '(?:syrup|concentrate|base|puree|purée|brew|infusion|cordial|mixture|paste|decoction|sharbat|extract)';
+  // headings like "Brew and chill the hibiscus base:" name the product even though the heading is not a step
+  const heads = o.steps.map(t => (/^\s*(?:\d+[.)]\s*)?([A-Za-z][^:.\d()]{1,60}):/.exec(t) || [])[1] || '').join(' . ').toLowerCase();
   const made = new RegExp(`\\bmake (?:the |a |your )?((?:[a-z-]+ ){0,3}${END})\\b`).exec(kitchenText)
+    || new RegExp(`\\b(?:the |a |your )((?:[a-z-]+ ){0,2}${END2})\\b`).exec(heads)
     || new RegExp(`\\b(?:of |add |pour |with )the ((?:[a-z-]+ ){0,2}${END})\\b`).exec(glassText)
     || new RegExp(`\\bthe ((?:[a-z-]+ ){0,2}${END})\\b`).exec(glassText)
     || new RegExp(`\\bthe ((?:[a-z-]+ ){0,2}${END2})\\b(?![\\s\\S]*\\bthe (?:[a-z-]+ ){0,2}${END2}\\b)`).exec(kitchenText);
   const fallback: Record<string, string> = { blend: 'blended mix', strain: 'strained mix', steep: 'brew', chill: 'chilled mix', boil: 'cooked mix', heat: 'warm mix', cool: 'cooled mix' };
   const product = made ? made[1].trim() : fallback[lastAct] || 'mix';
+  // a step that works on a long list of things names the product when the recipe names one ("Chill the tamarind base")
+  kitchen.forEach(k => { const nm = made ? made[1].trim() : 'mixture'; k.label = k.label.replace(/\u0004mixture/g, nm); k.detail = k.detail.replace(/\u0004mixture/g, nm); });
   const fin = store[cur] || EMPTY();
   return { kitchen, kitchenText, glassText, product, color: fin.color, op: fin.op, act: lastAct };
 }
@@ -373,7 +398,7 @@ export function withMethod(seq: Seq & { prep?: string | null }, o: MethodInput &
     if (st.kind === 'blend' && m.kitchen.some(k => k.kit.act === 'blend')) continue;
     if ((st.kind === 'pour' || st.kind === 'float') && allUsed && !st.strained && !st.blendedPour) {
       if (merged) { merged.ml = (merged.ml || 0) + (st.ml || 0); merged.ids = [...merged.ids, ...ids]; continue; }
-      merged = { ...st, color: prodColor(st.color), opacity: Math.max(0.35, Math.min(0.9, (m.op + (st.opacity ?? 0.5)) / 2 + 0.1)), label: `${st.into === 'shaker' ? 'Pour the ' + m.product + ' into the shaker' : 'Pour in the ' + m.product}`, detail: `Pour ${Math.round(st.ml || 0)} ml of the ${m.product} ${st.into === 'shaker' ? 'into the shaker' : 'into the glass'}.` } as SeqStep;
+      merged = { ...st, fromKitchen: true, color: prodColor(st.color), opacity: Math.max(0.35, Math.min(0.9, (m.op + (st.opacity ?? 0.5)) / 2 + 0.1)), label: `${st.into === 'shaker' ? 'Pour the ' + m.product + ' into the shaker' : 'Pour in the ' + m.product}`, detail: `Pour ${Math.round(st.ml || 0)} ml of the ${m.product} ${st.into === 'shaker' ? 'into the shaker' : 'into the glass'}.` } as SeqStep;
       glass.push(merged); continue;
     }
     glass.push({ ...st });
